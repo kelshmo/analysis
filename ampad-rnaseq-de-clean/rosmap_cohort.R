@@ -1,7 +1,7 @@
 #from https://github.com/kelshmo/ampad-DiffExp/blob/master/gene_level_analysis/ROSMAP_geneLevel.Rmd#L117
 
 #######################
-# Get and Join Inputs #
+# Get and Join/Bind Inputs #
 #######################
 
 rosmap_inputs <- tibble(object = c("counts", "clinical metadata", "clinical metadata - uncensored ages", "assay metadata", "sequencing metadata", "mapping"), 
