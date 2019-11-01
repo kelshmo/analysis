@@ -1,0 +1,19 @@
+default:
+  inputs:
+    synID: syn20833111
+  clinical metadata:
+    synID: syn3191087
+    version: 9
+  protected clinical metadata:
+    synID: syn7116000
+  assay metadata:
+    synID: syn4300313
+  sequencing metadata:
+    synID: syn21075912
+  mapping:
+    synID: syn3382527
+    version: 7
+  synID mapping:
+    synID: syn21075913
+  counts:
+    synID: syn21075911
