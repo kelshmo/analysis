@@ -8,9 +8,10 @@
 sequencing_metadata <- get_data(config::get("sequencing metadata")$synID,
                                 config::get("sequencing metadata")$version) %>%
   full_join(get_data(config::get("synID mapping")$synID), by = c("sample" = "id")) %>%
-  select(specimenID, everything(), -sample, -versionNumber)
+  select(specimenID, everything(), -sample, -versionNumber) %>%
+  distinct()
 
-# Remove duplicate counts "syn4212581", "syn4212582"
+# Remove one version of duplicate counts "syn4212581", "syn4212582"
 counts <- get_data(config::get("counts")$synID)[-c(1:4),] %>%
   dplyr::select(-syn4212582) %>%
   tibble::column_to_rownames(var = "feature") %>%
@@ -105,8 +106,8 @@ colnames(metadata) <- gsub("AlignmentSummaryMetrics__", "", colnames(metadata))
 colnames(metadata) <- tolower(colnames(metadata))
 
 # Convert rownames of counts to ensemble gene id
-tmp = data.frame(Gene.ID = rownames(counts)) %>%
-  dplyr::mutate(ID = Gene.ID) %>%
-  tidyr::separate(ID, c('ensembl_gene_id', 'position'), sep = '\\.')
-rownames(tmp) = tmp$Gene.ID
-rownames(counts) = tmp[rownames(counts), 'ensembl_gene_id']
+# tmp = data.frame(Gene.ID = rownames(counts)) %>%
+#   dplyr::mutate(ID = Gene.ID) %>%
+#   tidyr::separate(ID, c('ensembl_gene_id', 'position'), sep = '\\.')
+# rownames(tmp) = tmp$ensembl_gene_id
+# rownames(counts) = tmp[rownames(counts), 'ensembl_gene_id']
