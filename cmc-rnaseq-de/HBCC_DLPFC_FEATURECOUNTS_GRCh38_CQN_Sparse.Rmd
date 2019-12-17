@@ -265,7 +265,7 @@ FILT <- REPORTED.GENDER.COUNTS %>%
   filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
   tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
-  mutate(XIST = as.numeric(`ENSG00000229807.10`)) %>% 
+  mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
   mutate(UTY = as.numeric(`ENSG00000183878.15`)) %>% 
   mutate(UTY = ifelse(UTY == -Inf, 0, UTY)) %>% 
   mutate(XIST = ifelse(XIST == -Inf, 0, XIST))
