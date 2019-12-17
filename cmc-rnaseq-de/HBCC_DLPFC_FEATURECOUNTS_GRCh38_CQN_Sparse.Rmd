@@ -163,6 +163,7 @@ METADATA <- dplyr::select(maps, ID, RNA_ID) %>%
   dplyr::mutate(SampleID = dplyr::coalesce(ID, RNA_ID))
 
 # Limit HBCC DLPFC Counts
+rownames(COUNT) = COUNT$Geneid
 COUNT <- COUNT[,colnames(COUNT) %in% METADATA$SampleID]
 
 ind = METADATA$SampleID[which(METADATA$ReportExclude == 1 | METADATA$GenotypeExclude)]
