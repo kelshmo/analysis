@@ -260,9 +260,9 @@ p[[2]] = p[[2]] + ggtitle('Y') + my.theme
 multiplot(plotlist = p, cols = 2)
 
 ##XIST and UTY expression 
-#ENSG00000229807.10 and ENSG00000183878.15 
+#ENSG00000229807.11 and ENSG00000183878.15 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(gene_id == "ENSG00000229807.10" | gene_id == "ENSG00000183878.15") %>% 
+  filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
   tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
   mutate(XIST = as.numeric(`ENSG00000229807.10`)) %>% 
