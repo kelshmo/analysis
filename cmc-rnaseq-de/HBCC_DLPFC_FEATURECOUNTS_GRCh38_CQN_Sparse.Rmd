@@ -11,7 +11,7 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./HBCC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/HBCC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
                                           parentId ="syn21435176",
                                           folderName = 'HBCC - DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model')
 ```
