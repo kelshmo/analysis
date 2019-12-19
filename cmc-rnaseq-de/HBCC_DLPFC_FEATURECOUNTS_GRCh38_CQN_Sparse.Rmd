@@ -87,9 +87,10 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_DLPFC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_DLPFC_ID
-metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 13) %>%
-  dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, Ethnicity, Age_of_Death, `PMI_(in_hours)`, Dx,
+metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 15) %>%
+  dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
+                                      'rnaSeq_dissection:Brain_Region',
                                       'rnaSeq_report:Ribozero_Batch', 'rnaSeq_report:Library_Batch', 
                                       'rnaSeq_report:Flowcell_Batch', 'rnaSeq_report:Exclude?',
                                       'rnaSeq_report:Mapped_Reads',
@@ -99,11 +100,8 @@ metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 13) %>%
                                       'rnaSeq_report:rRNA_Rate',
                                       'rnaSeq_report:Total_Reads', 'rnaSeq_report:Percent_Aligned',
                                       'rnaSeq_report:Transcripts_Detected')) %>% 
-  dplyr::filter(Institution %in% c("NIMH-HBCC"))
-
-## Mapping file for misnamed HBCC samples 
-maps <- downloadFile("syn17115622") %>% 
-  dplyr::filter()
+  dplyr::filter(Institution %in% c("NIMH-HBCC")) %>% 
+  dplyr::filter(`rnaSeq_dissection:Brain_Region` %in% c("DLPFC"))
 
 ## Download reprocessed counts (DLPFC)
 counts = 'syn21382250'
@@ -151,16 +149,11 @@ METADATA = metadata %>%
                 IntergenicRate = `rnaSeq_report:Intergenic_Rate`, GenesDetected = `rnaSeq_report:Genes_Detected`,
                 ExpProfEfficiency = `rnaSeq_report:Expression_Profiling_Efficiency`, rRNARate = `rnaSeq_report:rRNA_Rate`,
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
-  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, Age_of_Death, PMI, Dx, 
+  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, RibozeroBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
   dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "BP", Other = "undetermined", Control = "Control", SCZ = "SCZ"))
-
-# Map to HBCC Sample Ids
-METADATA <- dplyr::select(maps, ID, RNA_ID) %>% 
-  dplyr::right_join(METADATA, by = c("RNA_ID" = "SampleID")) %>% 
-  dplyr::mutate(SampleID = dplyr::coalesce(ID, RNA_ID))
 
 # Limit HBCC DLPFC Counts
 rownames(COUNT) = COUNT$Geneid
@@ -195,6 +188,9 @@ ind = METADATA$SampleID [is.na(METADATA$EV.1)]
 writeLines(paste('Following', length(ind), 'counts are missing ancestry information'))
 writeLines(paste(ind, collapse = ', '))
 METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
+
+qc <- readRDS(synGet("syn21420622")$path)
+
 ```
 
 ```{r preprocess.data1, results='asis'}
