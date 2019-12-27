@@ -444,7 +444,7 @@ tmp = COVARIATES %>%
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
 
-Based on the expression pattern following samples were tagged as outliers: `r paste(indToRemove, collapse = ', ')` 
+Based on the expression pattern following samples were tagged as outliers: `r paste(outliers, collapse = ', ')` 
 
 Distribution of samples are:
 `r kable(tmp)`
