@@ -393,18 +393,6 @@ Following is the distribution of biotypes
 ### Outlier analysis
 Detect outlier samples based on their expression (logCPM) pattern
 ```{r detect.outliers, fig.height=8, fig.width=8, results='asis', cache = FALSE}
-# indToRemove = c('MSSM_RNA_ACC_BP_24', 'MSSM_RNA_ACC_375', 'MSSM_RNA_ACC_170', 'MSSM_RNA_ACC_315', 'MSSM_RNA_ACC_250',
-#                 'MSSM_RNA_ACC_21', 'MSSM_RNA_ACC_356', 'MSSM_RNA_ACC_318', 'MSSM_RNA_ACC_222', 'MSSM_RNA_ACC_220',
-#                 'MSSM_RNA_ACC_379', 'MSSM_RNA_PFC_133', 'MSSM_RNA_PFC_139', 'MSSM_RNA_PFC_163', 'MSSM_RNA_PFC_260',
-#                 'MSSM_RNA_PFC_299', 'MSSM_RNA_PFC_361', 'MSSM_RNA_PFC_89', 'MSSM_RNA_PFC_319', 'MSSM_RNA_PFC_348',
-#                 'MSSM_RNA_PFC_354', 'MSSM_RNA_PFC_60', 'PENN_RNA_PFC_71', 'PENN_RNA_PFC_56',  "MSSM_RNA_ACC_310",
-#                 "MSSM_RNA_ACC_51",  "MSSM_RNA_ACC_254", "MSSM_RNA_ACC_28", "MSSM_RNA_ACC_293", "MSSM_RNA_ACC_233",
-#                 "MSSM_RNA_ACC_167", "MSSM_RNA_ACC_353", "MSSM_RNA_ACC_355", "MSSM_RNA_ACC_211", "PENN_RNA_ACC_122",
-#                 "PENN_RNA_ACC_049", "PENN_RNA_ACC_052", "PENN_RNA_ACC_068", "PENN_RNA_ACC_070", "PITT_RNA_ACC_10020",
-#                 "PITT_RNA_ACC_1240", "PITT_RNA_ACC_1284", "PITT_RNA_ACC_700", "PITT_RNA_ACC_857", "PITT_RNA_ACC_BP_1589",
-#                 "MSSM_RNA_PFC_230", "MSSM_RNA_PFC_304", "MSSM_RNA_PFC_309", "MSSM_RNA_PFC_329", "MSSM_RNA_PFC_82",
-#                 "PENN_RNA_PFC_5", "PENN_RNA_PFC_58", "PENN_RNA_PFC_99", "PITT_RNA_PFC_1284")
-
 # Find principal components of expression to plot
 PC <- prcomp(voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E, scale.=T, center = T)
 
@@ -412,9 +400,23 @@ PC <- prcomp(voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E, scale.=T, cente
 plotdata <- data.frame(SampleID=rownames(PC$rotation), 
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
-  dplyr::mutate(label = SampleID)
-plotdata$label[!(plotdata$SampleID %in% indToRemove)] = ''
+
+# Percentage from each PC
+eigen <- PC$sdev^2
+pc1 <- eigen[1]/sum(eigen)
+pc2 <- eigen[2]/sum(eigen)
+
+# Identify outliers - samples 4SDs from the mean
+outliers <- as.character(plotdata$SampleID[c(which(plotdata$PC1 < mean(plotdata$PC1) - 4*sd(plotdata$PC1)),
+                              which(plotdata$PC1 > mean(plotdata$PC1) + 4*sd(plotdata$PC1))), drop = T])
+
+outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < mean(plotdata$PC2) - 4*sd(plotdata$PC2)),
+                                           which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
+  
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
+  dplyr::mutate(label = SampleID) %>% 
+  dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
+
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
 p <- p + theme_bw() %+replace% theme(legend.position="right")
@@ -432,7 +434,7 @@ tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
 # p = p + theme_bw() %+replace% theme(legend.position = 'none') + facet_grid(Dx~., scale = 'free')
 # p
 
-indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), indToRemove)
+indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), outliers)
 PROCESSED_COUNTS$filteredExprMatrix$counts = PROCESSED_COUNTS$filteredExprMatrix$counts[,indToRetain]
 COVARIATES = COVARIATES[indToRetain,]
 
