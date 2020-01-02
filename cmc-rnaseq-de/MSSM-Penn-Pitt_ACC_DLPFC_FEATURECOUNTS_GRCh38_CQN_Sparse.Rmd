@@ -11,7 +11,7 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
                                  parentId ="syn9872607",
                                  folderName = "MSSM-Penn-Pitt - ACC and DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model")
 ```
