@@ -280,7 +280,7 @@ COVARIATES.CORRELATION = getAssociationStatistics(COVARIATES, PVAL = 0.05)
 tmp = COVARIATES.CORRELATION$ESTIMATE
 tmp[COVARIATES.CORRELATION$PVAL > 0.05] = 0
 h = Heatmap(tmp, col = colorRamp2(c(-1,0,1), c('blue','white','red')), name = 'AssocEstimate')
-draw(h, heatmap_legend_side = 'left')
+ComplexHeatmap::draw(h, heatmap_legend_side = 'left')
 ```
 
 ## Explore metatdata
