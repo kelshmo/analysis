@@ -107,8 +107,8 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 #Get Metadata
 metadata = 'syn16816488' 
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = metadata
-metadata = downloadFile_version(metadata, version = 13)  %>% 
-  dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, Ethnicity, Age_of_Death, `PMI_(in_hours)`, Dx,
+metadata = downloadFile_version(metadata, version = 14)  %>% 
+  dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_report:Ribozero_Batch', 'rnaSeq_report:Library_Batch', 
                                       'rnaSeq_report:Flowcell_Batch','rnaSeq_dissection:Brain_Region',
@@ -139,7 +139,7 @@ METADATA = metadata %>%
                 TotalReads = `rnaSeq_report:Total_Reads`, 
                 AlignmentRate = `rnaSeq_report:Percent_Aligned`,
                 RIN = `rnaSeq_isolation:RIN`) %>%
-  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, Age_of_Death, PMI, Dx, 
+  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, RibozeroBatch, Tissue, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate) %>% 
@@ -170,7 +170,7 @@ writeLines(paste('Following', length(ind), 'counts are missing gender'))
 writeLines(paste(ind, collapse = ', '))
 METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind)) 
 
-ind = METADATA$SampleID [is.na(METADATA$Age_of_Death)]
+ind = METADATA$SampleID [is.na(METADATA$ageOfDeath)]
 writeLines(paste('Following', length(ind), 'counts are missing age of death'))
 writeLines(paste(ind, collapse = ', '))
 METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
@@ -238,12 +238,12 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
-#ENSG00000229807.10 and ENSG00000183878.15 
+#ENSG00000229807.11 and ENSG00000183878.15 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(gene_id == "ENSG00000229807.10" | gene_id == "ENSG00000183878.15") %>% 
+  filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
   tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
-  mutate(XIST = as.numeric(`ENSG00000229807.10`)) %>% 
+  mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
   mutate(UTY = as.numeric(`ENSG00000183878.15`))
 
 p = ggplot(FILT, aes (x= XIST, y = UTY)) 
@@ -254,7 +254,7 @@ p
 Determine relationship between covariates. 
 ```{r covariates.clustering}
 FactorCovariates <- c('Individual_ID', "Institution", "Reported_Gender", "LibraryBatch", "Dx.Tissue", "RibozeroBatch", "FlowcellBatch")
-ContCovariates <- c("Age_of_Death", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
+ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
                     "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads","AlignmentRate", 
                      "EV.1", "EV.2", "EV.3", "EV.4", "EV.5")
 
@@ -293,7 +293,7 @@ p[[1]] = ggplot(COVARIATES, aes(x = Dx.Tissue, y = RIN)) + geom_boxplot()
 p[[1]] = p[[1]] + ggtitle('RIN') + my.theme
 
 # Age of Death
-p[[2]] = ggplot(COVARIATES, aes(x = Dx.Tissue, y = Age_of_Death)) + geom_boxplot()
+p[[2]] = ggplot(COVARIATES, aes(x = Dx.Tissue, y = ageOfDeath)) + geom_boxplot()
 p[[2]] = p[[2]] + ggtitle('AgeOfDeath') + my.theme
 
 # PMI
@@ -384,8 +384,6 @@ indToRemove = c(indToRemove, c("MSSM_RNA_ACC_224", "MSSM_RNA_ACC_240", "MSSM_RNA
 
 indToRemove = c(indToRemove, "PITT_RNA_BP_PFC_1770")
 
-
-
 # Find principal components of expression to plot
 PC <- prcomp(voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E, scale.=T, center = T)
 
@@ -394,13 +392,25 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
-  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
-  dplyr::mutate(label = SampleID)
-plotdata$label[!(plotdata$SampleID %in% indToRemove)] = ''
+# Percentage from each PC
+eigen <- PC$sdev^2
+pc1 <- eigen[1]/sum(eigen)
+pc2 <- eigen[2]/sum(eigen)
+
+# Identify outliers - samples 4SDs from the mean
+outliers <- as.character(plotdata$SampleID[c(which(plotdata$PC1 < mean(plotdata$PC1) - 4*sd(plotdata$PC1)),
+                              which(plotdata$PC1 > mean(plotdata$PC1) + 4*sd(plotdata$PC1))), drop = T])
+
+outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < mean(plotdata$PC2) - 4*sd(plotdata$PC2)),
+                                           which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
+  
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
+    tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
+  dplyr::mutate(label = SampleID) %>% 
+  dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(color=Institution, shape=Tissue, size=Age_of_Death))
+p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
@@ -414,12 +424,12 @@ tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
               tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
 
 p = ggplot(tmp1 %>%
-             dplyr::filter(SampleID %in% indToRemove),
+             dplyr::filter(SampleID %in% outliers),
            aes(x = logCPM, color = SampleID)) + geom_density() 
 p = p + theme(legend.position = 'top') + facet_grid(Dx+.~Tissue, scale = 'free')
 p
 
-indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), indToRemove)
+indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), outliers)
 PROCESSED_COUNTS$filteredExprMatrix$counts = PROCESSED_COUNTS$filteredExprMatrix$counts[,indToRetain]
 COVARIATES = COVARIATES[indToRetain,]
 
@@ -430,7 +440,9 @@ tmp = tidyr::separate(COVARIATES, Dx.Tissue, c('Dx', 'Tissue'), sep = '_') %>%
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
 
-Based on the expression pattern following samples were tagged as outliers: `r paste(indToRemove, collapse = ', ')` 
+Based on the expression pattern following samples were tagged as outliers: `r paste(outliers, collapse = ', ')` 
+
+Based on prior evidence, investigators elected to remove: `r setdiff(indToRemove, outliers)[setdiff(indToRemove,outliers) %in% colnames(counts)]`
 
 Distribution of samples are:
 `r kable(tmp)`
@@ -504,7 +516,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>
   tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(color=Institution, shape=Tissue, size=Age_of_Death))
+p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 # p <- p + geom_text(aes(label= SampleID), size=4, hjust=0)
 p
@@ -674,7 +686,7 @@ baseModelBIC = fitMixedEffectModel(adjust.covars,
   dplyr::rename(baseModel = BIC)
 
 # Iteratively identify covariates in phase I
-phase1.covars = c('Institution', 'Reported_Gender', 'PMI', 'Age_of_Death', 'RIN', 'RIN2', 'EV.1', 'EV.2', 'EV.3', 'EV.4', 'EV.5')
+phase1.covars = c('Institution', 'Reported_Gender', 'PMI', 'ageOfDeath', 'RIN', 'RIN2', 'EV.1', 'EV.2', 'EV.3', 'EV.4', 'EV.5')
 vars.selected = selectCovarsToAdjust(phase1.covars, adjust.covars, 
                                      COVARIATES, CQN.GENE_EXPRESSION$E, 
                                      NEW.COUNTS, baseModelBIC)
@@ -800,7 +812,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>
   tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(color=Institution, shape=Tissue, size=Age_of_Death))
+p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~., scales = 'free_y')
 p
 ```
