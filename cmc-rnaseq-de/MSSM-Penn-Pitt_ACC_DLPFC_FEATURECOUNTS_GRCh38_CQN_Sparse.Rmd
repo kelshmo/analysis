@@ -990,9 +990,9 @@ PROCESSED_COUNTS$filteredExprMatrix$counts %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
   write.table(file = 'CMC_ACC_DLPFC_Counts.tsv', sep = '\t', row.names=F, quote=F)
 COUNT_OBJ = File('CMC_ACC_DLPFC_Counts.tsv', name = 'Counts (filtered raw)', parentId = CODE$properties$id)
-COUNT_OBJ = synStore(COUNT_OBJ, activity = synGetActivity(COV_OBJ$properties$id))
+COUNT_OBJ = synStore(COUNT_OBJ, used = ALL_USED_IDs, activityName = activityName, 
+                      executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(COUNT_OBJ, annotations = all.annotations)
-
 
 # Store logCPM
 CQN.GENE_EXPRESSION$E %>%
