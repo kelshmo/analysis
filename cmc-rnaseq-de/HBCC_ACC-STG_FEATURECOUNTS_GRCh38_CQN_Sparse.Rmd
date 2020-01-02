@@ -91,7 +91,8 @@ metadata = downloadFile_version(METADATA_QC_ID, version = 14) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
-                                      'rnaSeq_report:Ribozero_Batch', 'rnaSeq_report:Library_Batch', 
+                                      'rnaSeq_isolation:RNA_Isolation_Batch',
+                                      'rnaSeq_report:Library_Batch', 
                                       'rnaSeq_report:Flowcell_Batch', 'rnaSeq_report:Exclude?',
                                       'rnaSeq_report:Mapped_Reads',
                                       'rnaSeq_report:Intragenic_Rate','rnaSeq_report:Intronic_Rate',
@@ -147,7 +148,7 @@ METADATA = metadata %>%
                 SampleID = Sample_RNA_ID,
                 LibraryBatch = `rnaSeq_report:Library_Batch`,
                 FlowcellBatch = `rnaSeq_report:Flowcell_Batch`,
-                RibozeroBatch = `rnaSeq_report:Ribozero_Batch`,
+                IsolationBatch = `rnaSeq_isolation:RNA_Isolation_Batch`, #isolation batch to replace ribozero batch
                 MappedReads = `rnaSeq_report:Mapped_Reads`,
                 IntragenicRate = `rnaSeq_report:Intragenic_Rate`, IntronicRate = `rnaSeq_report:Intronic_Rate`, 
                 IntergenicRate = `rnaSeq_report:Intergenic_Rate`, GenesDetected = `rnaSeq_report:Genes_Detected`,
@@ -155,7 +156,7 @@ METADATA = metadata %>%
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
   dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
-                LibraryBatch, FlowcellBatch, RibozeroBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
+                LibraryBatch, FlowcellBatch, IsolationBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
   dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "MDD", Other = "BP", Control = "Control", SCZ = "SCZ"))
 
@@ -279,7 +280,7 @@ p
 ### Covariates clustering
 Determine relationship between covariates. 
 ```{r covariates.clustering}
-FactorCovariates <- c('Individual_ID', "Reported_Gender", "LibraryBatch", "Dx", "FlowcellBatch")
+FactorCovariates <- c('Individual_ID', "Reported_Gender", "IsolationBatch", "Dx")
 ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
                     "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads", 
                     "EV.1", "EV.2", "EV.3", "EV.4", "EV.5")
@@ -306,7 +307,7 @@ COVARIATES.CORRELATION = getAssociationStatistics(COVARIATES, PVAL = 0.05)
 tmp = COVARIATES.CORRELATION$ESTIMATE
 tmp[COVARIATES.CORRELATION$PVAL > 0.05] = 0
 h = Heatmap(tmp, col = colorRamp2(c(-1,0,1), c('blue','white','red')), name = 'AssocEstimate')
-draw(h, heatmap_legend_side = 'left')
+ComplexHeatmap::draw(h, heatmap_legend_side = 'left')
 ```
 
 ## Explore metatdata
@@ -549,7 +550,7 @@ p
 Tree based clustering of samples
 ```{r decompse.normalise.data.1, fig.height=6, fig.width=10, results='asis'}
 # Eucledian tree based analysis
-COVARIATES.tmp = data.matrix(COVARIATES[,c("Reported_Gender", "LibraryBatch", "Dx")])
+COVARIATES.tmp = data.matrix(COVARIATES[,c("Reported_Gender", "Dx")])
 COVARIATES.tmp[is.na(COVARIATES.tmp)] = 0
 
 tmp = CQN.GENE_EXPRESSION$E
@@ -729,7 +730,7 @@ baseModelBIC = fitMixedEffectModel(adjust.covars,
                                    COVARIATES) %>%
   dplyr::rename(baseModel = BIC)
 # Iteratively identify covariates in phase I
-phase2.covars = c('LibraryBatch', 'FlowcellBatch')
+phase2.covars = c('IsolationBatch')
 vars.selected = selectCovarsToAdjust(phase2.covars, adjust.covars, 
                                      COVARIATES, CQN.GENE_EXPRESSION$E, 
                                      NEW.COUNTS, baseModelBIC)
