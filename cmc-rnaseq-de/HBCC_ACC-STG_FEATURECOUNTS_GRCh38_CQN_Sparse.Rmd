@@ -111,6 +111,9 @@ COUNT$Chr <- NULL
 COUNT$Start <- NULL
 COUNT$End <- NULL
 COUNT$Strand <- NULL
+# Fix counts column header - remove "X" in sample name
+new_names <- gsub("X6", "6", colnames(COUNT))
+colnames(COUNT) <- new_names
 
 # Parse gene lengths
 gene_lengths = COUNT[,c("Geneid", "Length")]
