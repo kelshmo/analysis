@@ -154,7 +154,7 @@ METADATA = metadata %>%
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, RibozeroBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
-  dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "BP", Other = "undetermined", Control = "Control", SCZ = "SCZ"))
+  dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "MDD", Other = "BP", Control = "Control", SCZ = "SCZ"))
 
 # Limit HBCC ACC and STG Counts
 rownames(COUNT) = COUNT$Geneid
