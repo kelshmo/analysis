@@ -87,7 +87,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ID
-metadata = downloadFile_version(METADATA_QC_ID, version = 14) %>%
+metadata = downloadFile_version(METADATA_QC_ID, version = 15) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
