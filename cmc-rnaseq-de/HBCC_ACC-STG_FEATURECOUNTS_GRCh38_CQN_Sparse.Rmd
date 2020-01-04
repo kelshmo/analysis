@@ -140,7 +140,7 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 # Merge metadata
 METADATA = metadata %>%
   dplyr::left_join(GENOTYPE) %>% 
-  dplyr::rename(Region = `rnaSeq_dissection:Brain_Region`,
+  dplyr::rename(Tissue = `rnaSeq_dissection:Brain_Region`,
                 PMI = `PMI_(in_hours)`,
                 RIN = `rnaSeq_isolation:RIN`, 
                 ReportExclude = `rnaSeq_report:Exclude?`,
