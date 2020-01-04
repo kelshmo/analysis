@@ -1,7 +1,7 @@
 ---
 title: "MSSM-Penn-Pitt - ACC and DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
 author: "Kelsey Montgomery"
-date: "11/8/2019"
+date: "`r date()`"
 output: html_document
 ---
 
