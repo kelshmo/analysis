@@ -154,7 +154,7 @@ METADATA = metadata %>%
                 IntergenicRate = `rnaSeq_report:Intergenic_Rate`, GenesDetected = `rnaSeq_report:Genes_Detected`,
                 ExpProfEfficiency = `rnaSeq_report:Expression_Profiling_Efficiency`, rRNARate = `rnaSeq_report:rRNA_Rate`,
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
-  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
+  dplyr::select(SampleID, Individual_ID, Institution, Tissue, Reported_Gender, Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, IsolationBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
