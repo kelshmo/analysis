@@ -3,12 +3,12 @@
 ############################
 # Get and Join/Bind Inputs #
 ############################
-
+Sys.setenv(R_CONFIG_ACTIVE = "default")
 # Join synIDs and select sample identifiers to map sequencing metadata
 sequencing_metadata <- get_data(config::get("sequencing metadata")$synID,
                                 config::get("sequencing metadata")$version) %>%
   full_join(get_data(config::get("synID mapping")$synID), by = c("sample" = "id")) %>%
-  select(specimenID, everything(), -sample, -versionNumber) %>%
+  dplyr::select(specimenID, everything(), -sample, -versionNumber) %>%
   distinct()
 
 # Remove one version of duplicate counts "syn4212581", "syn4212582"
@@ -19,7 +19,7 @@ counts <- get_data(config::get("counts")$synID)[-c(1:4),] %>%
   as.data.frame() %>%
   tibble::rownames_to_column(var = "sample") %>%
   left_join(get_data(config::get("synID mapping")$synID), by = c("sample" = "id")) %>%
-  select(-sample, -versionNumber) %>%
+  dplyr::select(-sample, -versionNumber) %>%
   tibble::column_to_rownames(var = "specimenID") %>%
   t()
 
@@ -49,12 +49,12 @@ metadata <- get_data(config::get("assay metadata")$synID,
 #######################
 
 # Identify variables with missing data
-removed_samples <- metadata$Sampleid[is.na(metadata$cogdx)|
-                                 is.na(metadata$braaksc)|
-                                 is.na(metadata$ceradsc)|
-                                 is.na(metadata$RINcontinuous)|
-                                 is.na(metadata$pmi)|
-                                 is.na(metadata$RnaSeqMetrics__INTRONIC_BASES)|
+removed_samples <- metadata$Sampleid[is.na(metadata$cogdx) |
+                                 is.na(metadata$braaksc) |
+                                 is.na(metadata$ceradsc) |
+                                 is.na(metadata$RINcontinuous) |
+                                 is.na(metadata$pmi) |
+                                 is.na(metadata$RnaSeqMetrics__INTRONIC_BASES) |
                                  is.na(metadata$age_death)]
 
 # Pick higher quality RIN batch
