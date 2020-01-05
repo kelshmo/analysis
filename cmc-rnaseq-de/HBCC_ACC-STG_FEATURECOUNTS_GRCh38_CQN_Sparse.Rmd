@@ -421,25 +421,29 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
                                            which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
+    tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
   dplyr::mutate(label = SampleID) %>% 
   dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="right")
+p <- p + geom_point(aes(shape=Tissue, size=ageOfDeath))
+p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
+
 # Plot abberent distribution of logcpm counts
 tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
   tidyr::gather(SampleID, logCPM, -ensembl_gene_id) %>%
   left_join(COVARIATES %>%
-              rownameToFirstColumn('SampleID'))
-# p = ggplot(tmp1 %>%
-#              dplyr::filter(SampleID %in% indToRemove),
-#            aes(x = logCPM, color = SampleID)) + geom_density() 
-# p = p + theme_bw() %+replace% theme(legend.position = 'none') + facet_grid(Dx~., scale = 'free')
-# p
+              rownameToFirstColumn('SampleID') %>%
+              tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
+
+p = ggplot(tmp1 %>%
+             dplyr::filter(SampleID %in% outliers),
+           aes(x = logCPM, color = SampleID)) + geom_density() 
+p = p + theme(legend.position = 'top') + facet_grid(Dx+.~Tissue, scale = 'free')
+p
 
 indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), outliers)
 PROCESSED_COUNTS$filteredExprMatrix$counts = PROCESSED_COUNTS$filteredExprMatrix$counts[,indToRetain]
@@ -526,7 +530,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA HBCC ACC-STG Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -545,7 +549,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(MDS1,MDS2))
 p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS HBCC ACC-STG Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -836,7 +840,8 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
