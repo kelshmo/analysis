@@ -869,9 +869,12 @@ gc()
 Genes that are differentially expressed at an FDR <= 0.05 are
 ```{r diffExp, fig.height=10, fig.width=15}
 # Fit contrast
-contrast = makeContrasts(contrasts=c("Dx.TissueOther-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueOther"),
+contrast = makeContrasts(contrasts=c("Dx.TissueOther_ACC-Dx.TissueControl_ACC",
+                                     "Dx.TissueSCZ_ACC-Dx.TissueControl_ACC",
+                                     "Dx.TissueSCZ_ACC-Dx.TissueOther_ACC",
+                                     "Dx.TissueOther_STG-Dx.TissueControl_STG",
+                                     "Dx.TissueSCZ_STG-Dx.TissueControl_STG",
+                                     "Dx.TissueSCZ_STG-Dx.TissueOther_STG"),
                          levels = colnames(ADJUSTED.FIT$coefficients))
 FIT.CONTR = contrasts.fit(ADJUSTED.FIT, contrasts=contrast)
 FIT.CONTR = eBayes(FIT.CONTR)
