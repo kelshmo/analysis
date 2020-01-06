@@ -844,7 +844,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>
   tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
+p <- p + geom_point(aes(shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~., scales = 'free_y')
 p
 ```
