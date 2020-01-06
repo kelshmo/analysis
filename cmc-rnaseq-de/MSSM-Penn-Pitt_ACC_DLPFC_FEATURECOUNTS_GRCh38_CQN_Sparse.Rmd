@@ -1,5 +1,5 @@
 ---
-title: "MSSM-Penn-Pitt - ACC and DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
+title: "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
 author: "Kelsey Montgomery"
 date: "`r date()`"
 output: html_document
@@ -13,7 +13,7 @@ synLogin()
 
 knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
                                  parentId ="syn9872607",
-                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model")
+                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model")
 ```
 
 ```{r libs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
@@ -974,7 +974,7 @@ all.annotations = list(
 )
 
 # Code
-CODE <- Folder(name = "MSSM-Penn-Pitt - ACC and DLPFC - FEATURECOUNTS - GRCh38 - CQN - Sparse Model", parentId = parentId)
+CODE <- Folder(name = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model", parentId = parentId)
 CODE <- synStore(CODE)
 
 # Store covariates
