@@ -601,7 +601,7 @@ fitMixedEffectModel <- function(varsToFit, groupingVar, lcpm, cnt, covars){
                                              Individual_ID = groupingVar)
                                 formula = paste(setdiff(colnames(data), c('Gx', 'Individual_ID')), collapse = '+') %>%
                                   paste('Gx ~',.,'+ (1|Individual_ID)', collapse = ' ')
-                              
+                              writeLines(paste("This is the formula:",formula))
                                 weights = voomWeights[i,]
                                 BIC = NA
                                 tryCatch({
@@ -676,7 +676,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt
 ```
 #### Phase I (clinical, ancestry and sample specific technical variables)
 ```{r phase1}
-# Fit a base model with the following covariates
+# Fit a base model with the following covariates varsToFit, groupingVar, lcpm, cnt, covars
 adjust.covars = c('Dx.Tissue')
 baseModelBIC = fitMixedEffectModel(adjust.covars, 
                                    COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
@@ -742,30 +742,32 @@ Clinical, technical and batch variables selected after phase I, II and III of mo
 writeLines(paste('Using following covariates in the model:',
                  paste(adjust.covars, collapse=', '),
                  'as fixed effects and Individual_ID is chosen as random effect'))
-  
-# Post adjusted design matrix
-DM1 = getDesignMatrix(COVARIATES[,adjust.covars,drop=F],Intercept = F)
-DM1$design = DM1$design[,linColumnFinder(DM1$design)$indepCols]
-  
-# Estimate voom weights
+
+# Post adjusted formula
+random_effect <- "Individual_ID"
+formula <- glue::glue("~ ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+
+# Estimate voom weights with DREAM
 tmp = NEW.COUNTS
 tmp[is.na(tmp)] = 0
-VOOM.GENE_EXPRESSION = voom(tmp, design=DM1$design, plot=F)
+geneExpr = DGEList(tmp)
+geneExpr = edgeR::calcNormFactors(geneExpr)
 
-# Estimate consensus correlation coefficient
-correlation <- parallelDuplicateCorrelation(VOOM.GENE_EXPRESSION, block = COVARIATES$Individual_ID)
-  
-# Re-calculate voom weights with correlation of random effects
-VOOM.GENE_EXPRESSION = voom(tmp, 
-                            design=DM1$design, plot=F,
-                            block = COVARIATES$Individual_ID, 
-                            correlation = correlation$cor)
+VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = tmp, 
+                                                               formula = formula,
+                                                               data = COVARIATES )
 
 # Fit linear model using new weights and new design
-VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
-ADJUSTED.FIT = lmFit(VOOM.GENE_EXPRESSION)
-  
-# Residuals after normalisation
+# CQN NA counts to 0 counts for input to dream()
+tmp = CQN.GENE_EXPRESSION$E
+tmp[is.na(tmp)] = 0
+VOOM.GENE_EXPRESSION$E = tmp
+ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+                                        formula = formula,
+                                        data = COVARIATES)
+
+# Residuals after normalisation - residuals.MArrayLM() does not take MArrayLM2 objects
 RESIDUAL.GENE_EXPRESSION = residuals.MArrayLM(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
@@ -841,20 +843,49 @@ gc()
 ### Differential expression analysis
 Genes that are differentially expressed at an FDR <= 0.05 are
 ```{r diffExp, fig.height=10, fig.width=15}
-# Fit contrast
-contrast = makeContrasts(contrasts=c("Dx.TissueOther_ACC-Dx.TissueControl_ACC",
-                                     "Dx.TissueSCZ_ACC-Dx.TissueControl_ACC",
-                                     "Dx.TissueSCZ_ACC-Dx.TissueOther_ACC",
-                                     "Dx.TissueOther_DLPFC-Dx.TissueControl_DLPFC",
-                                     "Dx.TissueSCZ_DLPFC-Dx.TissueControl_DLPFC",
-                                     "Dx.TissueSCZ_DLPFC-Dx.TissueOther_DLPFC"),
-                         levels = colnames(ADJUSTED.FIT$coefficients))
-FIT.CONTR = contrasts.fit(ADJUSTED.FIT, contrasts=contrast)
-FIT.CONTR = eBayes(FIT.CONTR)
 
-# Get differnetial expression
-DE = lapply(1:6, function(i, FIT){
-  topTable(FIT, coef=i, number = 50000, confint = TRUE) %>%
+formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+
+L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueOther_ACC", "Dx.TissueControl_ACC"))
+L2 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueControl_ACC"))
+L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueOther_ACC"))
+L4 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueOther_DLPFC", "Dx.TissueControl_DLPFC"))
+L5 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueControl_DLPFC"))
+
+L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueOther_DLPFC"))
+L = cbind(L1, L2, L3, L4, L5, L6)
+
+# Visualize contrast matrix
+plotContrasts(L) 
+
+# Fit contrast
+FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
+                                     formula = formula,
+                                     data = COVARIATES,
+                                     L = L)
+
+# Get differential expression
+DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
+  topTable(FIT, coef=i, number = 50000) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
 }, FIT.CONTR) 
