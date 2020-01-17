@@ -885,7 +885,7 @@ FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
 
 # Get differential expression
 DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
-  topTable(FIT, coef=i, number = 50000) %>%
+  topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
 }, FIT.CONTR) 
