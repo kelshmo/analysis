@@ -32,7 +32,8 @@ library(edgeR)
 library(cqn)
 library(lme4)
 library(biomaRt)
-
+devtools::install_github("GabrielHoffman/variancePartition@3287d7b")
+library(variancePartition)
 library(synapser)
 library(knitr)
 library(githubr) # get the package from devtools::install_github('brian-bot/githubr')
@@ -754,9 +755,9 @@ tmp[is.na(tmp)] = 0
 geneExpr = DGEList(tmp)
 geneExpr = edgeR::calcNormFactors(geneExpr)
 
-VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = tmp, 
+VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
                                                                formula = formula,
-                                                               data = COVARIATES )
+                                                               data = COVARIATES)
 
 # Fit linear model using new weights and new design
 # CQN NA counts to 0 counts for input to dream()
@@ -765,7 +766,8 @@ tmp[is.na(tmp)] = 0
 VOOM.GENE_EXPRESSION$E = tmp
 ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
                                         formula = formula,
-                                        data = COVARIATES)
+                                        data = COVARIATES,
+                                        computeResiduals = TRUE)
 
 # Residuals after normalisation - residuals.MArrayLM() does not take MArrayLM2 objects
 RESIDUAL.GENE_EXPRESSION = residuals.MArrayLM(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
