@@ -780,6 +780,36 @@ residualSigCovars = runPCAandPlotCorrelations(tmp, COVARIATES,
                                               isKeyPlot=TRUE)
 ```
 
+``` {r cor.repeat.measures}
+repeated <- COVARIATES %>%
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>% 
+  dplyr::group_by(Individual_ID, Tissue) %>% 
+  dplyr::summarize(Samples = n()) %>% 
+  dplyr::filter(Samples == 1) %>% 
+  dplyr::group_by(Individual_ID) %>% 
+  dplyr::summarize(multiSample_perTissue = n()) %>% 
+  dplyr::filter(multiSample_perTissue == 2)
+
+glue::glue("{length(unique(repeated$Individual_ID))} of {length(unique(COVARIATES$Individual_ID))} have repeat measurements")
+
+quant_cor <- function(count_matrix, metadata, repeated_vec){
+  correlations <- tribble(~ iid, ~ cor)
+  for (i in repeated_vec){
+     samps <- metadata$SampleID[metadata$Individual_ID %in% i]
+     cors <- cor(count_matrix[,samps[1]], count_matrix[,samps[2]])
+     entry <- tribble(~ iid, ~ cor,
+                      as.character(i), cors)
+     correlations <- bind_rows(correlations,entry)
+  }
+  correlations
+}
+
+tmp = NEW.COUNTS
+tmp[is.na(tmp)] = 0
+
+correlation_tissue <- quant_cor(tmp, METADATA, repeated$Individual_ID)
+```
+
 ### Sanity check
 ```{r residualSigCovars.manual, fig.width=12, fig.height=8}
 residualSigCovars[["PC_res"]][[2]]$plotData
@@ -1090,6 +1120,15 @@ ENRICH_OBJ = File('CMC_ACC_DLPFC_EnrichResults.tsv',
 ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                       executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
+
+# Store correlation between tissues
+write.table(correlation_tissue, file = 'CMC_ACC_DLPFC_correlationTissue.tsv', sep = '\t', row.names = FALSE, quote = FALSE)
+COR_OBJ = File('CMC_ACC_DLPC_correlationTissue.tsv',
+               name = 'Correlation between Tissues, Same Individual',
+               parentId = CODE$properties$id)
+COR_OBJ = synStore(COR_OBJ, used = ALL_USED_IDs, activityName = activityName,
+                   executed = thisFile, activityDescription = acactivityDescription)
+synSetAnnotations(COR_OBJ, annotations = all.annotations)
 ```
 ```
 |  *Results*                                  |  *SynapseID*                     |
