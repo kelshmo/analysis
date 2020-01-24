@@ -232,10 +232,10 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   filter(chromosome_name == "X" |chromosome_name == "Y") %>% 
   tidyr::gather(key = item, value = value, -c(gene_id, chromosome_name)) %>%
   mutate(value = log(value)) %>%
-  rename(`counts(log)`= value) %>% 
-  rename(SampleID = item) %>%
+  dplyr::rename(`counts(log)`= value) %>% 
+  dplyr::rename(SampleID = item) %>%
   left_join(METADATA[,c("SampleID", "Reported_Gender")]) %>% 
-  rename(`Reported Gender` = Reported_Gender) 
+  dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
 #ENSG00000229807.11 and ENSG00000183878.15 
