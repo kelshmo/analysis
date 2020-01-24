@@ -66,7 +66,7 @@ activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN norm
 thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='master')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='compute-tissue-cor')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
