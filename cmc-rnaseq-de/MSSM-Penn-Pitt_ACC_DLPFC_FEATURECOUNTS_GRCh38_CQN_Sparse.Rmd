@@ -90,7 +90,7 @@ counts$Strand <- NULL
 # Parse gene lengths
 gene_lengths = counts[,c("Geneid", "Length")]
 counts$Length <- NULL
-gene_lengths <- rename(gene_lengths, gene_id = Geneid)
+gene_lengths <- dplyr::rename(gene_lengths, gene_id = Geneid)
 
 # Get ancestry vector calculated using gemtools
 ANCESTRY_ID = 'syn2511399'
@@ -194,14 +194,13 @@ METADATA = METADATA[indToRetain,]
 
 METADATA %>% 
   group_by(Dx, Tissue) %>% 
-  summarise(count = n()) %>% 
+  dplyr::summarise(count = n()) %>% 
   spread(Tissue, count) %>%
   kable()
 
 METADATA = METADATA %>%
   dplyr::mutate(Dx.Tissue = paste(Dx, Tissue, sep = '.'))
 ```
-Following sample are removed `r paste(removedIDs, collapse = ',')`
 
 ```{r gene.param}
 ## Get GC content from biomart
