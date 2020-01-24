@@ -32,7 +32,7 @@ library(edgeR)
 library(cqn)
 library(lme4)
 library(biomaRt)
-devtools::install_github("GabrielHoffman/variancePartition@3287d7b")
+#devtools::install_github("GabrielHoffman/variancePartition@613dfe9")
 library(variancePartition)
 library(synapser)
 library(knitr)
@@ -770,7 +770,7 @@ ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                         computeResiduals = TRUE)
 
 # Residuals after normalisation - residuals.MArrayLM() does not take MArrayLM2 objects
-RESIDUAL.GENE_EXPRESSION = residuals.MArrayLM(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
 tmp = RESIDUAL.GENE_EXPRESSION
@@ -789,9 +789,9 @@ residualSigCovars[["PC_res"]][[2]]$plotData
 Calculate weighted residuals and add back "Dx.Tissue" to the residuals
 ```{r varsToAddBack}
 # Add variable of interest back to the residuals
-varsToAddIn = grep("Dx.Tissue", colnames(DM1$design), value = T)
+varsToAddIn = grep("Dx.Tissue", colnames(ADJUSTED.FIT$design), value = T)
 RESIDUAL.GENE_EXPRESSION = RESIDUAL.GENE_EXPRESSION +
-  ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(DM1$design[,varsToAddIn])
+  ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(ADJUSTED.FIT$design[,varsToAddIn])
 ```
 
 ### Coexpression of residual expression 
@@ -876,6 +876,13 @@ L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION,
                                    coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueOther_DLPFC"))
 L = cbind(L1, L2, L3, L4, L5, L6)
 
+contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
+              glue::glue_collapse(names(L2[L2 != 0]), "-"),
+              glue::glue_collapse(names(L3[L3 != 0]), "-"),
+              glue::glue_collapse(names(L4[L4 != 0]), "-"),
+              glue::glue_collapse(names(L5[L5 != 0]), "-"),
+              glue::glue_collapse(names(L6[L6 != 0]), "-"))
+
 # Visualize contrast matrix
 plotContrasts(L) 
 
@@ -891,14 +898,14 @@ DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
 }, FIT.CONTR) 
-names(DE) = colnames(contrast)
+names(DE) <- contrast
 
 DE = DE %>% 
-  rbindlist(idcol = 'Comparison') %>%
+  rbindlist(idcol = 'Comparison') %>% 
   dplyr::mutate(Comparison = gsub('Dx.Tissue','',Comparison),
                 Direction = logFC/abs(logFC),
                 Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
-                Direction = as.character(Direction)) %>%
+                Direction = as.character(Direction)) %>% 
   tidyr::separate(Comparison, into = c('ref.state','to.state'), sep = '-') %>%
   tidyr::separate(ref.state, into = c('Dx1','Tissue'), sep = '_') %>%
   tidyr::separate(to.state, into = c('Dx2','Tissue'), sep = '_') %>%
