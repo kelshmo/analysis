@@ -1130,8 +1130,10 @@ COR_OBJ = File('CMC_ACC_DLPFC_correlationTissue.tsv',
 COR_OBJ = synStore(COR_OBJ, used = ALL_USED_IDs, activityName = activityName,
                    executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(COR_OBJ, annotations = all.annotations)
+
 ```
 ```
+
 |  *Results*                                  |  *SynapseID*                     |
 |  -----------------------------------------  |   ---------                      |
 |  Covariates                                 |  `r COV_OBJ$properties$id`       |
@@ -1142,6 +1144,7 @@ synSetAnnotations(COR_OBJ, annotations = all.annotations)
 |  Residual Expression (for network analysis) |  `r nEXP_OBJ$properties$id`      |
 |  Differential Expression                    |  `r DEXP_OBJ$properties$id`      |
 |  Enrichment Analysis                        |  `r ENRICH_OBJ$properties$id`    |
+|  Correlation between Tissues                |  `r COR_OBJ$properties$id`       | 
 
 ### Source Rmd
 [Source markdown](`r thisFile`)
