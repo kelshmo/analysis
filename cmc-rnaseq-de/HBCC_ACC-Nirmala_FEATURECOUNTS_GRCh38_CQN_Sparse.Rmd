@@ -93,7 +93,7 @@ metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 16) %>%
                                       'rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
                                       'rnaSeq_report:Ribozero_Batch', 'rnaSeq_report:Library_Batch', 
-                                      'rnaSeq_report:RNA_Isolation_Batch', 'rnaSeq_report:Exclude?',
+                                      'rnaSeq_isolation:RNA_Isolation_Batch', 'rnaSeq_report:Exclude?',
                                       'rnaSeq_report:Mapped_Reads',
                                       'rnaSeq_report:Intragenic_Rate','rnaSeq_report:Intronic_Rate',
                                       'rnaSeq_report:Intergenic_Rate','rnaSeq_report:Genes_Detected',
@@ -145,7 +145,7 @@ METADATA = metadata %>%
                 GenotypeExclude = `SNP_report:Exclude?`,
                 SampleID = Sample_RNA_ID,
                 LibraryBatch = `rnaSeq_report:Library_Batch`,
-                IsolationBatch = `rnaSeq_report:RNA_Isolation_Batch`,
+                IsolationBatch = `rnaSeq_isolation:RNA_Isolation_Batch`,
                 RibozeroBatch = `rnaSeq_report:Ribozero_Batch`,
                 MappedReads = `rnaSeq_report:Mapped_Reads`,
                 IntragenicRate = `rnaSeq_report:Intragenic_Rate`, IntronicRate = `rnaSeq_report:Intronic_Rate`, 
@@ -154,7 +154,7 @@ METADATA = metadata %>%
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
   dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
-                LibraryBatch, FlowcellBatch, RibozeroBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
+                LibraryBatch, IsolationBatch, RibozeroBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
   dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "BP", Control = "Control", SCZ = "SCZ"))
 
