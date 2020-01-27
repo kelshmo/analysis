@@ -356,7 +356,7 @@ pct.pc = PROCESSED_COUNTS$filteredExprMatrix$genes %>%
   left_join(backgroundGenes) %>%
   left_join(Ensemble2HGNC) %>%
   group_by(gene_biotype) %>%
-  summarise(fraction  = n()) %>%
+  dplyr::summarise(fraction  = n()) %>%
   filter(fraction > 100) %>%
   dplyr::mutate(fraction = fraction/length(PROCESSED_COUNTS$filteredExprMatrix$genes[,1]))
 ```
@@ -435,7 +435,7 @@ COVARIATES = COVARIATES[indToRetain,]
 
 tmp = tidyr::separate(COVARIATES, Dx.Tissue, c('Dx', 'Tissue'), sep = '_') %>%
   group_by(Dx, Tissue) %>%
-  summarise(count = n()) %>%
+  dplyr::summarise(count = n()) %>%
   spread(Tissue, count)
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
@@ -874,7 +874,6 @@ gc()
 ### Differential expression analysis
 Genes that are differentially expressed at an FDR <= 0.05 are
 ```{r diffExp, fig.height=10, fig.width=15}
-
 formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
   glue::glue(" + (1|{random_effect})")
 
@@ -913,7 +912,7 @@ contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"),
               glue::glue_collapse(names(L6[L6 != 0]), "-"))
 
 # Visualize contrast matrix
-plotContrasts(L) 
+variancePartition::plotContrasts(L) 
 
 # Fit contrast
 FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
@@ -926,7 +925,10 @@ DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
   topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
-}, FIT.CONTR) 
+}, FIT.CONTR)
+```
+
+```{r testchunk}
 names(DE) <- contrast
 
 DE = DE %>% 
@@ -1083,7 +1085,7 @@ OFFSET_OBJ = synStore(OFFSET_OBJ, used = ALL_USED_IDs, activityName = activityNa
 synSetAnnotations(OFFSET_OBJ, annotations = all.annotations)
 
 # Store design matrix
-DM1$design %>%
+FIT.CONTR$design %>%
   rownameToFirstColumn('SampleID') %>%
   write.table(file = 'CMC_ACC_DLPFC_Design.tsv', sep = '\t', row.names=F, quote=F)
 DM_OBJ = File('CMC_ACC_DLPFC_Design.tsv', name = 'Design Matrix', parentId = CODE$properties$id)
