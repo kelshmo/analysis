@@ -1128,7 +1128,7 @@ COR_OBJ = File('CMC_ACC_DLPC_correlationTissue.tsv',
                name = 'Correlation between Tissues, Same Individual',
                parentId = CODE$properties$id)
 COR_OBJ = synStore(COR_OBJ, used = ALL_USED_IDs, activityName = activityName,
-                   executed = thisFile, activityDescription = acactivityDescription)
+                   executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(COR_OBJ, annotations = all.annotations)
 ```
 ```
