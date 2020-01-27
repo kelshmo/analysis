@@ -187,6 +187,11 @@ writeLines(paste('Following', length(ind), 'counts are missing age of death'))
 writeLines(paste(ind, collapse = ', '))
 METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 
+ind = METADATA$SampleID [is.na(METADATA$RIN)]
+writeLines(paste('Following', length(ind), 'counts are missing RIN'))
+writeLines(paste(ind, collapse = ', '))
+METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
+
 ind = METADATA$SampleID [is.na(METADATA$EV.1)]
 writeLines(paste('Following', length(ind), 'counts are missing ancestry information'))
 writeLines(paste(ind, collapse = ', '))
