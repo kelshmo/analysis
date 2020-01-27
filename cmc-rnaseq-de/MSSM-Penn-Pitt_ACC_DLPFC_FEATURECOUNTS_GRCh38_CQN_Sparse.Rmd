@@ -1124,7 +1124,7 @@ synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
 
 # Store correlation between tissues
 write.table(correlation_tissue, file = 'CMC_ACC_DLPFC_correlationTissue.tsv', sep = '\t', row.names = FALSE, quote = FALSE)
-COR_OBJ = File('CMC_ACC_DLPC_correlationTissue.tsv',
+COR_OBJ = File('CMC_ACC_DLPFC_correlationTissue.tsv',
                name = 'Correlation between Tissues, Same Individual',
                parentId = CODE$properties$id)
 COR_OBJ = synStore(COR_OBJ, used = ALL_USED_IDs, activityName = activityName,
