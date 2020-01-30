@@ -525,7 +525,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA HBCC Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -544,7 +544,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(MDS1,MDS2))
 p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("HBCC Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -607,8 +607,7 @@ preAdjustedSigCovars[["PC_res"]][[2]]$plotData
 
 ### Model Identification
 ```{r fxn}
-# Function to fit a mixed effect model and return BIC
-fitMixedEffectModel <- function(varsToFit, groupingVar, lcpm, cnt, covars){
+fitFixedEffectModel <- function(varsToFit, lcpm, cnt, covars){
   
   # Get design matrix
   designMat = getDesignMatrix(covars[colnames(lcpm), varsToFit, drop=F], Intercept = F)
@@ -618,35 +617,33 @@ fitMixedEffectModel <- function(varsToFit, groupingVar, lcpm, cnt, covars){
   cnt[is.na(cnt)] = 0
   voomWeights = limma::voom(cnt, design = designMat, plot=F)$weights
   
-  modelBIC = foreach::foreach(i = 1:dim(lcpm)[1],
-                              .combine = rbind,
-                              .packages = c('lme4', 'dplyr'),
-                              .export = c('voomWeights')) %dopar% {
-                                
-                                # Perform weighted mixed linear models for every gene
-                                expr = data.frame(Gx = lcpm[i,])
-                                data = cbind(expr,
-                                             designMat[rownames(expr),],
-                                             Individual_ID = groupingVar)
-                                formula = paste(setdiff(colnames(data), c('Gx', 'Individual_ID')), collapse = '+') %>%
-                                  paste('Gx ~',.,'+ (1|Individual_ID)', collapse = ' ')
-                              
-                                weights = voomWeights[i,]
-                                BIC = NA
-                                tryCatch({
-                                  mdl = lmer(formula = formula, 
-                                             data = data, 
-                                             weights = weights)
-                                  BIC = BIC(mdl)
-                                }, error = function(e){
-                                  BIC = NA
-                                })
-                              return(data.frame(ensembl_gene_id = rownames(lcpm)[i],
-                                                BIC = BIC))
-                            }
+  modelBIC = plyr::ldply(1:dim(lcpm)[1],
+                         .fun = function(i, lcpm, designMat, voomWeights){
+                           # Fit a linear models for every gene
+                           data = cbind(data.frame(Gx = lcpm[i,]),
+                                        designMat, 
+                                        weight = voomWeights[i,])
+                           
+                           formula = paste(setdiff(colnames(data), c('Gx', 'weight')), collapse = '+') %>%
+                             paste('Gx ~',., collapse = ' ')
+                           
+                           mdl = stats::lm(formula = formula, 
+                                           data = data, 
+                                           weights = weight)
+                           
+                           data.frame(ensembl_gene_id = rownames(lcpm)[i], BIC = BIC(mdl))
+                         }, 
+                         lcpm, designMat, voomWeights, 
+                         .parallel = F,
+                         .paropts = list(.packages = c('dplyr')))
   return(modelBIC)
-  }
+}
 
+
+
+# vars.selected = selectCovarsToAdjust(phase1.covars, adjust.covars, 
+#                                      COVARIATES, CQN.GENE_EXPRESSION$E, 
+#                                      NEW.COUNTS, baseModelBIC)
 # Function to select covariates in a step-wise regression fashion
 selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt, baseModelBIC){
   
@@ -657,13 +654,12 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt
     allModelBIC = foreach(i = 1:length(covarsToSelect),
                           .combine = c,
                           .packages = pkgs,
-                          .export = c('fitMixedEffectModel')) %dopar% {
+                          .export = c('fitFixedEffectModel')) %dopar% {
                             
                             # Fit a mixed effect linear model and get all BIC
-                            modelBIC = fitMixedEffectModel(c(adjustCovars, covarsToSelect[i]),
-                                                           covars[colnames(cnt),'Individual_ID'], 
+                            modelBIC = fitFixedEffectModel(c(adjustCovars, covarsToSelect[i]),
                                                            lcpm, 
-                                                           cnt, 
+                                                           cnt,
                                                            covars) %>%
                             plyr::rename(c('BIC' = covarsToSelect[i]))
                               
@@ -707,8 +703,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt
 ```{r phase1}
 # Fit a base model with the following covariates
 adjust.covars = c('Dx')
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
+baseModelBIC = fitFixedEffectModel(adjust.covars, 
                                    CQN.GENE_EXPRESSION$E, 
                                    NEW.COUNTS, 
                                    COVARIATES) %>%
@@ -726,8 +721,7 @@ Clinical and technical variables selected in phase I are `r paste(adjust.covars,
 #### Phase II (batch effects)
 ```{r phase2}
 # Fit a base model with the following covariates
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
+baseModelBIC = fitFixedEffectModel(adjust.covars, 
                                    CQN.GENE_EXPRESSION$E, 
                                    NEW.COUNTS, 
                                    COVARIATES) %>%
@@ -745,8 +739,7 @@ Clinical, technical and batch variables selected after phase I and II of model i
 #### Phase III (RNASeq alignment specific covariates)
 ```{r phase3}
 # Fit a base model with the following covariates
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
+baseModelBIC = fitFixedEffectModel(adjust.covars, 
                                    CQN.GENE_EXPRESSION$E, 
                                    NEW.COUNTS, 
                                    COVARIATES) %>%
