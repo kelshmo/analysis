@@ -733,7 +733,7 @@ baseModelBIC = fitMixedEffectModel(adjust.covars,
                                    COVARIATES) %>%
   dplyr::rename(baseModel = BIC)
 # Iteratively identify covariates in phase I
-phase2.covars = c('LibraryBatch', 'Isolation Batch')
+phase2.covars = c('LibraryBatch', 'IsolationBatch')
 vars.selected = selectCovarsToAdjust(phase2.covars, adjust.covars, 
                                      COVARIATES, CQN.GENE_EXPRESSION$E, 
                                      NEW.COUNTS, baseModelBIC)
@@ -780,7 +780,7 @@ tmp[is.na(tmp)] = 0
 VOOM.GENE_EXPRESSION = voom(tmp, design=DM1$design, plot=F)
 
 # Estimate consensus correlation coefficient
-correlation <- parallelDuplicateCorrelation(VOOM.GENE_EXPRESSION, block = COVARIATES$Individual_ID)
+correlation <- CovariateAnalysis::parallelDuplicateCorrelation(VOOM.GENE_EXPRESSION, block = COVARIATES$Individual_ID)
   
 # Re-calculate voom weights with correlation of random effects
 VOOM.GENE_EXPRESSION = voom(tmp, 
