@@ -130,7 +130,9 @@ GENOTYPE_ID = 'syn16816490'
 ALL_USED_IDs = c(ALL_USED_IDs, GENOTYPE_ID)
 GENOTYPE = downloadFile(GENOTYPE_ID) %>% 
   dplyr::select(Individual_ID, `SNP_report:Genotyping_Sample_ID`, `SNP_report:Exclude?`) %>% 
-  dplyr::inner_join(ANCESTRY)
+  dplyr::inner_join(ANCESTRY) %>% 
+  %>% 
+  dplyr::filter(is.na(`SNP_report:Exclude?`)) #Remove excluded samples here because there are duplicate individuals
 ```
 
 ### Data preprocessing
@@ -638,12 +640,6 @@ fitFixedEffectModel <- function(varsToFit, lcpm, cnt, covars){
                          .paropts = list(.packages = c('dplyr')))
   return(modelBIC)
 }
-
-
-
-# vars.selected = selectCovarsToAdjust(phase1.covars, adjust.covars, 
-#                                      COVARIATES, CQN.GENE_EXPRESSION$E, 
-#                                      NEW.COUNTS, baseModelBIC)
 # Function to select covariates in a step-wise regression fashion
 selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt, baseModelBIC){
   
