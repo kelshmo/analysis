@@ -154,7 +154,7 @@ METADATA = metadata %>%
                 IntergenicRate = `rnaSeq_report:Intergenic_Rate`, GenesDetected = `rnaSeq_report:Genes_Detected`,
                 ExpProfEfficiency = `rnaSeq_report:Expression_Profiling_Efficiency`, rRNARate = `rnaSeq_report:rRNA_Rate`,
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
-  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
+  dplyr::select(SampleID, Individual_ID, Institution, Tissue, Reported_Gender, Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, IsolationBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
@@ -421,25 +421,29 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
                                            which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
+    tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
   dplyr::mutate(label = SampleID) %>% 
   dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="right")
+p <- p + geom_point(aes(shape=Tissue, size=ageOfDeath))
+p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
+
 # Plot abberent distribution of logcpm counts
 tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
   tidyr::gather(SampleID, logCPM, -ensembl_gene_id) %>%
   left_join(COVARIATES %>%
-              rownameToFirstColumn('SampleID'))
-# p = ggplot(tmp1 %>%
-#              dplyr::filter(SampleID %in% indToRemove),
-#            aes(x = logCPM, color = SampleID)) + geom_density() 
-# p = p + theme_bw() %+replace% theme(legend.position = 'none') + facet_grid(Dx~., scale = 'free')
-# p
+              rownameToFirstColumn('SampleID') %>%
+              tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
+
+p = ggplot(tmp1 %>%
+             dplyr::filter(SampleID %in% outliers),
+           aes(x = logCPM, color = SampleID)) + geom_density() 
+p = p + theme(legend.position = 'top') + facet_grid(Dx+.~Tissue, scale = 'free')
+p
 
 indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), outliers)
 PROCESSED_COUNTS$filteredExprMatrix$counts = PROCESSED_COUNTS$filteredExprMatrix$counts[,indToRetain]
@@ -526,7 +530,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA HBCC ACC-STG Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -545,7 +549,7 @@ plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
 
 p <- ggplot(plotdata, aes(MDS1,MDS2))
 p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS MSSM/Penn/Pitt Cohort") + 
+p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS HBCC ACC-STG Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
          size = guide_legend(nrow = 2))
@@ -836,11 +840,12 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top") + facet_grid(.~Dx.Tissue, scales = 'free_y')
+p <- p + geom_point(aes(shape=Tissue, size=ageOfDeath))
+p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~., scales = 'free_y')
 p
 ```
 
@@ -869,17 +874,21 @@ gc()
 Genes that are differentially expressed at an FDR <= 0.05 are
 ```{r diffExp, fig.height=10, fig.width=15}
 # Fit contrast
-contrast = makeContrasts(contrasts=c("Dx.TissueOther-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueOther"),
+# Fit contrast
+contrast = makeContrasts(contrasts=c("Dx.TissueOther_ACC-Dx.TissueControl_ACC",
+                                     "Dx.TissueSCZ_ACC-Dx.TissueControl_ACC",
+                                     "Dx.TissueSCZ_ACC-Dx.TissueOther_ACC",
+                                     "Dx.TissueOther_STG-Dx.TissueControl_STG",
+                                     "Dx.TissueSCZ_STG-Dx.TissueControl_STG",
+                                     "Dx.TissueSCZ_STG-Dx.TissueOther_STG"),
                          levels = colnames(ADJUSTED.FIT$coefficients))
 FIT.CONTR = contrasts.fit(ADJUSTED.FIT, contrasts=contrast)
 FIT.CONTR = eBayes(FIT.CONTR)
 
 # Get differnetial expression
-DE = lapply(1:3, function(i, FIT){
+DE = lapply(1:6, function(i, FIT){
   topTable(FIT, coef=i, number = 50000, confint = TRUE) %>%
-    rownameToFirstColumn('gene_id') %>%
+    rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
 }, FIT.CONTR) 
 names(DE) = colnames(contrast)
@@ -890,28 +899,31 @@ DE = DE %>%
                 Direction = logFC/abs(logFC),
                 Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
                 Direction = as.character(Direction)) %>%
+  tidyr::separate(Comparison, into = c('ref.state','to.state'), sep = '-') %>%
+  tidyr::separate(ref.state, into = c('Dx1','Tissue'), sep = '_') %>%
+  tidyr::separate(to.state, into = c('Dx2','Tissue'), sep = '_') %>%
+  tidyr::unite(Comparison, Dx1, Dx2, sep = '_vs_') %>%
   left_join(Ensemble2HGNC) %>%
-  left_join(gene_lengths %>%
-              rownameToFirstColumn('gene_id'))
+  left_join(gene_lengths %>% rownameToFirstColumn('gene_id'))
 DE$Direction[DE$adj.P.Val > 0.05 | abs(DE$logFC) < log2(1.2)] = 'NONE'
 
 tmp = DE %>%
   dplyr::filter(adj.P.Val <= 0.05) %>%
-  dplyr::select(ensembl_gene_id, Comparison) %>%
-  group_by(Comparison) %>%
+  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
+  group_by(Comparison, Tissue) %>%
   dplyr::summarise(FDR_0_05 = length(unique(ensembl_gene_id)))
 
 tmp1 = DE %>%
   dplyr::filter(adj.P.Val <= 0.05, abs(logFC) >= log2(1.2)) %>%
-  dplyr::select(ensembl_gene_id, Comparison) %>%
-  group_by(Comparison) %>%
+  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
+  group_by(Comparison, Tissue) %>%
   dplyr::summarise(FDR_0_05_FC_1.2 = length(unique(ensembl_gene_id)))
 
 kable(full_join(tmp,tmp1))
 
 p = ggplot(DE, aes(y = -log10(adj.P.Val), x = logFC, color = Direction)) + geom_point() + xlim(c(-1,1))
 p = p + scale_color_manual(values = c('green','grey','red')) + theme_bw() %+replace% theme(legend.position = 'top')
-p = p + facet_grid(.~Comparison, scales = 'fixed')
+p = p + facet_grid(Tissue+.~Comparison, scales = 'fixed')
 p
 ```
 
