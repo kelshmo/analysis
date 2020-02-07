@@ -13,7 +13,7 @@ rosmap:
     synID: syn7116000
   assay metadata:
     synID: syn4300313
-  sequencing metadata:
+  alignment metadata:
     synID: syn21075912
   mapping:
     synID: syn3382527
@@ -32,7 +32,7 @@ mssm:
   assay metadata:
     synID: syn6100548
     version: 10
-  sequencing metadata:
+  alignment metadata:
     synID: syn21544666
   Synapse folder:
     synID: syn21562888
@@ -43,7 +43,7 @@ mayo:
   clinical metadata tcx:
     synID: syn3817650
     version: 9
-  sequencing metadata:
+  alignment metadata:
     synID: syn21544637
     version: 1
   counts:
