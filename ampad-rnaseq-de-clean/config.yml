@@ -37,6 +37,9 @@ mssm:
   Synapse folder:
     synID: syn21562888
 mayo:
+  counts:
+    synID: syn21544635
+    version: 1
   clinical metadata cbe:
     synID: syn5223705
     version: 6
@@ -46,6 +49,10 @@ mayo:
   alignment metadata:
     synID: syn21544637
     version: 1
-  counts:
-    synID: syn21544635
-    version: 1
+  qc tcx:
+    synID: syn6126114
+    version: 4
+  qc cbe:
+    synID: syn6126119
+    version: 4
+
