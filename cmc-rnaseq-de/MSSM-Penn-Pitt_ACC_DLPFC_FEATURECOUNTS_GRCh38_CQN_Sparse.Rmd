@@ -90,7 +90,7 @@ counts$Strand <- NULL
 # Parse gene lengths
 gene_lengths = counts[,c("Geneid", "Length")]
 counts$Length <- NULL
-gene_lengths <- rename(gene_lengths, gene_id = Geneid)
+gene_lengths <- dplyr::rename(gene_lengths, gene_id = Geneid)
 
 # Get ancestry vector calculated using gemtools
 ANCESTRY_ID = 'syn2511399'
@@ -194,7 +194,7 @@ METADATA = METADATA[indToRetain,]
 
 METADATA %>% 
   group_by(Dx, Tissue) %>% 
-  summarise(count = n()) %>% 
+  dplyr::summarise(count = n()) %>% 
   spread(Tissue, count) %>%
   kable()
 
@@ -232,11 +232,11 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   dplyr::select(-one_of("percentage_gene_gc_content")) %>%
   filter(chromosome_name == "X" |chromosome_name == "Y") %>% 
   tidyr::gather(key = item, value = value, -c(gene_id, chromosome_name)) %>%
-  mutate(value = log(value)) %>%
-  rename(`counts(log)`= value) %>% 
-  rename(SampleID = item) %>%
+  dplyr::mutate(value = log(value)) %>%
+  dplyr::rename(`counts(log)`= value) %>% 
+  dplyr::rename(SampleID = item) %>%
   left_join(METADATA[,c("SampleID", "Reported_Gender")]) %>% 
-  rename(`Reported Gender` = Reported_Gender) 
+  dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
 #ENSG00000229807.11 and ENSG00000183878.15 
@@ -357,7 +357,7 @@ pct.pc = PROCESSED_COUNTS$filteredExprMatrix$genes %>%
   left_join(backgroundGenes) %>%
   left_join(Ensemble2HGNC) %>%
   group_by(gene_biotype) %>%
-  summarise(fraction  = n()) %>%
+  dplyr::summarise(fraction  = n()) %>%
   filter(fraction > 100) %>%
   dplyr::mutate(fraction = fraction/length(PROCESSED_COUNTS$filteredExprMatrix$genes[,1]))
 ```
@@ -436,7 +436,7 @@ COVARIATES = COVARIATES[indToRetain,]
 
 tmp = tidyr::separate(COVARIATES, Dx.Tissue, c('Dx', 'Tissue'), sep = '_') %>%
   group_by(Dx, Tissue) %>%
-  summarise(count = n()) %>%
+  dplyr::summarise(count = n()) %>%
   spread(Tissue, count)
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
