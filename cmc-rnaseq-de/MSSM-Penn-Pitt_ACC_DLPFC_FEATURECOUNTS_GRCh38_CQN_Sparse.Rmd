@@ -767,7 +767,13 @@ VOOM.GENE_EXPRESSION$E = tmp
 ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
                                         formula = formula,
                                         data = COVARIATES,
-                                        computeResiduals = TRUE)
+                                        computeResiduals = TRUE,
+                                        save.plot = TRUE)
+plot(VOOM.GENE_EXPRESSION)
+violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
+                                                         formula = formula,
+                                                         data = COVARIATES)
+plotVarPart(sortCols(violin_plot))
 
 # Residuals after normalisation
 RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)

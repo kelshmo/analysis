@@ -777,9 +777,14 @@ geneExpr = edgeR::calcNormFactors(geneExpr)
 
 VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
                                                                formula = formula,
-                                                               data = COVARIATES)
+                                                               data = COVARIATES,
+                                                               save.plot = TRUE)
+plot(VOOM.GENE_EXPRESSION)
+violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
+                                                         formula = formula,
+                                                         data = COVARIATES)
+plotVarPart(sortCols(violin_plot))
 
-# Fit linear model using new weights and new design
 # CQN NA counts to 0 counts for input to dream()
 tmp = CQN.GENE_EXPRESSION$E
 tmp[is.na(tmp)] = 0
