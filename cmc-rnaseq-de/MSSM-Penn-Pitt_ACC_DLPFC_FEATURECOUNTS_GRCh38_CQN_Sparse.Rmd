@@ -602,7 +602,7 @@ fitMixedEffectModel <- function(varsToFit, groupingVar, lcpm, cnt, covars){
                                              Individual_ID = groupingVar)
                                 formula = paste(setdiff(colnames(data), c('Gx', 'Individual_ID')), collapse = '+') %>%
                                   paste('Gx ~',.,'+ (1|Individual_ID)', collapse = ' ')
-                              writeLines(paste("This is the formula:",formula))
+                                
                                 weights = voomWeights[i,]
                                 BIC = NA
                                 tryCatch({
@@ -677,7 +677,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt
 ```
 #### Phase I (clinical, ancestry and sample specific technical variables)
 ```{r phase1}
-# Fit a base model with the following covariates varsToFit, groupingVar, lcpm, cnt, covars
+# Fit a base model with the following covariates
 adjust.covars = c('Dx.Tissue')
 baseModelBIC = fitMixedEffectModel(adjust.covars, 
                                    COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
@@ -769,7 +769,7 @@ ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                         data = COVARIATES,
                                         computeResiduals = TRUE)
 
-# Residuals after normalisation - residuals.MArrayLM() does not take MArrayLM2 objects
+# Residuals after normalisation
 RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
@@ -901,11 +901,11 @@ DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
 names(DE) <- contrast
 
 DE = DE %>% 
-  rbindlist(idcol = 'Comparison') %>% 
+  rbindlist(idcol = 'Comparison') %>%
   dplyr::mutate(Comparison = gsub('Dx.Tissue','',Comparison),
                 Direction = logFC/abs(logFC),
                 Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
-                Direction = as.character(Direction)) %>% 
+                Direction = as.character(Direction)) %>%
   tidyr::separate(Comparison, into = c('ref.state','to.state'), sep = '-') %>%
   tidyr::separate(ref.state, into = c('Dx1','Tissue'), sep = '_') %>%
   tidyr::separate(to.state, into = c('Dx2','Tissue'), sep = '_') %>%
@@ -1091,7 +1091,7 @@ ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityNa
                       executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
 ```
-```
+
 |  *Results*                                  |  *SynapseID*                     |
 |  -----------------------------------------  |   ---------                      |
 |  Covariates                                 |  `r COV_OBJ$properties$id`       |

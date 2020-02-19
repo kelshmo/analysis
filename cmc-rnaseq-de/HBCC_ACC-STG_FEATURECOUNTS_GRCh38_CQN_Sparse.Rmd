@@ -1,5 +1,5 @@
 ---
-title: "HBCC - ACC - STG - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
+title: "HBCC - ACC - STG - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
 author: "Kelsey Montgomery and Thanneer Perumal"
 date: "`r date()`"
 output: html_document
@@ -13,7 +13,7 @@ synLogin()
 
 knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/HBCC_ACC-STG_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
                                           parentId ="syn21435176",
-                                          folderName = 'HBCC - ACC - STG - FEATURECOUNTS - GRCh38 - CQN - Sparse Model')
+                                          folderName = 'HBCC - ACC - STG - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model')
 ```
 
 
@@ -38,6 +38,7 @@ library(biomaRt)
 library(ComplexHeatmap)
 library(statmod)
 
+library(variancePartition)
 library(synapser)
 library(knitr)
 library(githubr) # get the package from devtools::install_github('brian-bot/githubr')
@@ -119,7 +120,7 @@ colnames(COUNT) <- new_names
 # Parse gene lengths
 gene_lengths = COUNT[,c("Geneid", "Length")]
 COUNT$Length <- NULL
-gene_lengths <- rename(gene_lengths, gene_id = Geneid)
+gene_lengths <- dplyr::rename(gene_lengths, gene_id = Geneid)
 
 # Get ancestry vector calculated using gemtools
 ANCESTRY_ID = 'syn9922992'
@@ -207,7 +208,7 @@ METADATA = METADATA[indToRetain,]
 
 METADATA %>% 
   group_by(Dx) %>% 
-  summarise(count = n()) %>% 
+  dplyr::summarise(count = n()) %>% 
   kable()
 
 METADATA = METADATA %>%
@@ -244,11 +245,11 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   dplyr::select(-one_of("percentage_gene_gc_content")) %>%
   filter(chromosome_name == "X" |chromosome_name == "Y") %>% 
   tidyr::gather(key = item, value = value, -c(gene_id, chromosome_name)) %>%
-  mutate(value = log(value)) %>%
-  rename(`counts(log)`= value) %>% 
-  rename(SampleID = item) %>%
+  dplyr::mutate(value = log(value)) %>%
+  dplyr::rename(`counts(log)`= value) %>% 
+  dplyr::rename(SampleID = item) %>%
   left_join(METADATA[,c("SampleID", "Reported_Gender")]) %>% 
-  rename(`Reported Gender` = Reported_Gender) 
+  dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 
 my.theme <- theme_bw() %+replace% theme(legend.position = 'top', axis.text.x = element_text(angle = 90, hjust = 1), plot.title=element_text(hjust=0.5))
@@ -388,7 +389,7 @@ pct.pc = PROCESSED_COUNTS$filteredExprMatrix$genes %>%
   left_join(backgroundGenes) %>%
   left_join(Ensemble2HGNC) %>%
   group_by(gene_biotype) %>%
-  summarise(fraction  = n()) %>%
+  dplyr::summarise(fraction  = n()) %>%
   filter(fraction > 100) %>%
   dplyr::mutate(fraction = fraction/length(PROCESSED_COUNTS$filteredExprMatrix$genes[,1]))
 ```
@@ -447,7 +448,7 @@ COVARIATES = COVARIATES[indToRetain,]
 
 tmp = tidyr::separate(COVARIATES, Dx.Tissue, c('Dx', 'Tissue'), sep = '_') %>%
   group_by(Dx, Tissue) %>%
-  summarise(count = n()) %>%
+  dplyr::summarise(count = n()) %>%
   spread(Tissue, count)
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
@@ -771,30 +772,31 @@ writeLines(paste('Using following covariates in the model:',
                  paste(adjust.covars, collapse=', '),
                  'as fixed effects and Individual_ID is chosen as random effect'))
   
-# Post adjusted design matrix
-DM1 = getDesignMatrix(COVARIATES[,adjust.covars,drop=F],Intercept = F)
-DM1$design = DM1$design[,linColumnFinder(DM1$design)$indepCols]
-  
-# Estimate voom weights
+# Post adjusted formula
+random_effect <- "Individual_ID"
+formula <- glue::glue("~ ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+
+# Estimate voom weights with DREAM
 tmp = NEW.COUNTS
 tmp[is.na(tmp)] = 0
-VOOM.GENE_EXPRESSION = voom(tmp, design=DM1$design, plot=F)
+geneExpr = DGEList(tmp)
+geneExpr = edgeR::calcNormFactors(geneExpr)
 
-# Estimate consensus correlation coefficient
-correlation <- parallelDuplicateCorrelation(VOOM.GENE_EXPRESSION, block = COVARIATES$Individual_ID)
-  
-# Re-calculate voom weights with correlation of random effects
-VOOM.GENE_EXPRESSION = voom(tmp, 
-                            design=DM1$design, plot=F,
-                            block = COVARIATES$Individual_ID, 
-                            correlation = correlation$cor)
+VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
+                                                               formula = formula,
+                                                               data = COVARIATES)
 
-# Fit linear model using new weights and new design
-VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
-ADJUSTED.FIT = lmFit(VOOM.GENE_EXPRESSION)
-  
+# CQN NA counts to 0 counts for input to dream()
+tmp = CQN.GENE_EXPRESSION$E
+tmp[is.na(tmp)] = 0
+VOOM.GENE_EXPRESSION$E = tmp
+ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+                                        formula = formula,
+                                        data = COVARIATES,
+                                        computeResiduals = TRUE)
 # Residuals after normalisation
-RESIDUAL.GENE_EXPRESSION = residuals.MArrayLM(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
 tmp = RESIDUAL.GENE_EXPRESSION
@@ -813,9 +815,9 @@ residualSigCovars[["PC_res"]][[2]]$plotData
 Calculate weighted residuals and add back "Dx.Tissue" to the residuals
 ```{r varsToAddBack}
 # Add variable of interest back to the residuals
-varsToAddIn = grep("Dx.Tissue", colnames(DM1$design), value = T)
+varsToAddIn = grep("Dx.Tissue", colnames(ADJUSTED.FIT$design), value = T)
 RESIDUAL.GENE_EXPRESSION = RESIDUAL.GENE_EXPRESSION +
-  ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(DM1$design[,varsToAddIn])
+   ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(ADJUSTED.FIT$design[,varsToAddIn])
 ```
 
 ### Coexpression of residual expression 
@@ -868,21 +870,54 @@ gc()
 ### Differential expression analysis
 Genes that are differentially expressed at an FDR <= 0.05 are
 ```{r diffExp, fig.height=10, fig.width=15}
-# Fit contrast
-contrast = makeContrasts(contrasts=c("Dx.TissueOther-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueControl",
-                                     "Dx.TissueSCZ-Dx.TissueOther"),
-                         levels = colnames(ADJUSTED.FIT$coefficients))
-FIT.CONTR = contrasts.fit(ADJUSTED.FIT, contrasts=contrast)
-FIT.CONTR = eBayes(FIT.CONTR)
+formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueOther_ACC", "Dx.TissueControl_ACC"))
+L2 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueControl_ACC"))
+L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueOther_ACC"))
+L4 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueOther_STG", "Dx.TissueControl_STG"))
+L5 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueControl_STG"))
+L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueOther_STG"))
+L = cbind(L1, L2, L3, L4, L5, L6)
+contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
+              glue::glue_collapse(names(L2[L2 != 0]), "-"),
+              glue::glue_collapse(names(L3[L3 != 0]), "-"),
+              glue::glue_collapse(names(L4[L4 != 0]), "-"),
+              glue::glue_collapse(names(L5[L5 != 0]), "-"),
+              glue::glue_collapse(names(L6[L6 != 0]), "-"))
+# Visualize contrast matrix
+plotContrasts(L) 
 
-# Get differnetial expression
-DE = lapply(1:3, function(i, FIT){
-  topTable(FIT, coef=i, number = 50000, confint = TRUE) %>%
+# Fit contrast
+FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
+                                     formula = formula,
+                                     data = COVARIATES,
+                                     L = L)
+# Get differential expression
+DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
+  topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>%
     left_join(backgroundGenes)
 }, FIT.CONTR) 
-names(DE) = colnames(contrast)
+names(DE) <- contrast
 
 DE = DE %>% 
   rbindlist(idcol = 'Comparison') %>%
@@ -995,7 +1030,7 @@ all.annotations = list(
 )
 
 # Code
-CODE <- Folder(name = "HBCC - ACC - STG - FEATURECOUNTS - GRCh38 - CQN - Sparse Model", parentId = parentId)
+CODE <- Folder(name = "HBCC - ACC - STG - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model", parentId = parentId)
 CODE <- synStore(CODE)
 
 # Store covariates
@@ -1079,6 +1114,7 @@ ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityNa
 all.annotations$dataSubType = 'enrichResults'
 synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
 ```
+
 |  *Results*                                  |  *SynapseID*                     |
 |  -----------------------------------------  |   ---------                      |
 |  Covariates                                 |  `r COV_OBJ$properties$id`       |
