@@ -1120,6 +1120,15 @@ ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityNa
                       executed = thisFile, activityDescription = activityDescription)
 all.annotations$dataSubType = 'enrichResults'
 synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
+
+# Store adjusted fit linear mixed model object as RDS
+saveRDS(ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_dream-output.rds')
+ADJ_OBJ = File('CMC_ACC_DLPFC_dream-output.rds',
+               name = 'Dream Output object', 
+               parentId = CODE$properties$id)
+ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
+                   executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(ADJ_OBJ, annotations = all.annotations)
 ```
 
 |  *Results*                                  |  *SynapseID*                     |
