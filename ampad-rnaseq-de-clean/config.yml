@@ -1,6 +1,11 @@
 default:
-  inputs:
-    synID: syn20833111
+  counts:
+    synID:
+  metadata:
+    synID:
+rosmap:
+  counts:
+    synID: syn21075911
   clinical metadata:
     synID: syn3191087
     version: 9
@@ -8,12 +13,46 @@ default:
     synID: syn7116000
   assay metadata:
     synID: syn4300313
-  sequencing metadata:
+  alignment metadata:
     synID: syn21075912
   mapping:
     synID: syn3382527
     version: 7
   synID mapping:
     synID: syn21075913
+mssm:
   counts:
-    synID: syn21075911
+    synID: syn21544664
+  clinical metadata:
+    synID: syn6101474
+    version: 4
+  protected clinical metadata:
+    synID: syn10156693
+    version: 4
+  assay metadata:
+    synID: syn6100548
+    version: 10
+  alignment metadata:
+    synID: syn21544666
+  Synapse folder:
+    synID: syn21562888
+mayo:
+  counts:
+    synID: syn21544635
+    version: 1
+  clinical metadata cbe:
+    synID: syn5223705
+    version: 6
+  clinical metadata tcx:
+    synID: syn3817650
+    version: 9
+  alignment metadata:
+    synID: syn21544637
+    version: 1
+  qc tcx:
+    synID: syn6126114
+    version: 4
+  qc cbe:
+    synID: syn6126119
+    version: 4
+
