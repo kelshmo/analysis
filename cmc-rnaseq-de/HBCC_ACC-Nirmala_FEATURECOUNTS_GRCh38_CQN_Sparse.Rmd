@@ -471,15 +471,6 @@ CQN.GENE_EXPRESSION = cqn(NEW.COUNTS,
                           lengthMethod = "smooth", 
                           verbose = FALSE)
 CQN.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$y + CQN.GENE_EXPRESSION$offset
-
-# Set gene counts in specific samples that are deviating 3 sd from other samples to 0
-log.mat = apply(CQN.GENE_EXPRESSION$E, 1, function(x){
-  mn = mean(x, na.rm = T)
-  std.dev = sd(x, na.rm = T)
-  return((x < (mn-3*std.dev)) | (x > (mn+3*std.dev)))
-}) %>% t
-NEW.COUNTS[log.mat] = NA
-CQN.GENE_EXPRESSION$E[log.mat] = NA
 ```
 
 ### Co-expression distribution
