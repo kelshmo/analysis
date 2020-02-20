@@ -730,26 +730,22 @@ formula <- glue::glue("~ ", glue::glue_collapse(adjust.covars, sep = " + ")) %>%
   glue::glue(" + (1|{random_effect})")
 
 # Estimate voom weights with DREAM
-tmp = NEW.COUNTS
-tmp[is.na(tmp)] = 0
-geneExpr = DGEList(tmp)
+geneExpr = DGEList(NEW.COUNTS)
 geneExpr = edgeR::calcNormFactors(geneExpr)
 
 VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
                                                                formula = formula,
-                                                               data = COVARIATES)
+                                                               data = COVARIATES,
+                                                               save.plot = TRUE)
+#plot(VOOM.GENE_EXPRESSION)
 
 # Fit linear model using new weights and new design
-# CQN NA counts to 0 counts for input to dream()
-tmp = CQN.GENE_EXPRESSION$E
-tmp[is.na(tmp)] = 0
-VOOM.GENE_EXPRESSION$E = tmp
+VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
 ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
                                         formula = formula,
                                         data = COVARIATES,
-                                        computeResiduals = TRUE,
-                                        save.plot = TRUE)
-plot(VOOM.GENE_EXPRESSION)
+                                        computeResiduals = TRUE)
+
 violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
                                                          formula = formula,
                                                          data = COVARIATES)
