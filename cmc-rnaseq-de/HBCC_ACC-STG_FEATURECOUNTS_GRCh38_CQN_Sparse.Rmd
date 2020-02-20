@@ -365,8 +365,6 @@ multiplot(plotlist = p, cols = 3)
 ```
 ### Filter genes
 Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue and Reported Gender. Also remove genes with missing gene length and percentage GC content
-
-
 ```{r cpmnormalisation}
 rownames(COUNT) = COUNT$gene_id
 COUNT$gene_id = NULL
@@ -450,6 +448,8 @@ tmp = tidyr::separate(COVARIATES, Dx.Tissue, c('Dx', 'Tissue'), sep = '_') %>%
   group_by(Dx, Tissue) %>%
   dplyr::summarise(count = n()) %>%
   spread(Tissue, count)
+
+NEW.COUNTS = PROCESSED_COUNTS$filteredExprMatrix$counts
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
 
@@ -457,28 +457,6 @@ Based on the expression pattern following samples were tagged as outliers: `r pa
 
 Distribution of samples are:
 `r kable(tmp)`
-
-### Winsorise counts (Gene outliers in samples)
-```{r winsorise.data}
-LOG.CPM = cpm(PROCESSED_COUNTS$filteredExprMatrix$counts, log = T)
-
-# Set gene counts in specific samples that are deviating 3 sd from other samples to 3SD limit
-LOG.CPM = apply(LOG.CPM, 1, function(x){
-  mn = mean(x, na.rm = T)
-  std.dev = sd(x, na.rm = T)
-  
-  ind.low = which(x == max(x[which(x <= mn-3*std.dev)], na.rm = T))
-  ind.high = which(x == min(x[which(x >= mn+3*std.dev)], na.rm = T))
-  
-  x[x < (mn-3*std.dev)] = NA
-  x[x > (mn+3*std.dev)] = NA
-  return(x)
-}) %>% t
-
-# Back calculate counts for further analysis
-NEW.COUNTS = PROCESSED_COUNTS$filteredExprMatrix$counts
-NEW.COUNTS[is.na(LOG.CPM)] = 0
-```
 
 ### Library Normalisation
 Initial library normalisation usign cqn
