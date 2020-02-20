@@ -201,7 +201,6 @@ METADATA %>%
 METADATA = METADATA %>%
   dplyr::mutate(Dx.Tissue = paste(Dx, Tissue, sep = '.'))
 ```
-Following sample are removed `r paste(removedIDs, collapse = ',')`
 
 ```{r gene.param}
 ## Get GC content from biomart
