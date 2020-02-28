@@ -87,9 +87,9 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ID
-metadata = downloadFile_version(METADATA_QC_ID, version = 15) %>%
+metadata = downloadFile_version(METADATA_QC_ID, version = 16) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
-                Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
+                Sample_RNA_ID, one_of('Cohort', 'rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
                                       'rnaSeq_isolation:RNA_Isolation_Batch',
                                       'rnaSeq_report:Library_Batch', 
@@ -101,7 +101,7 @@ metadata = downloadFile_version(METADATA_QC_ID, version = 15) %>%
                                       'rnaSeq_report:rRNA_Rate',
                                       'rnaSeq_report:Total_Reads', 'rnaSeq_report:Percent_Aligned',
                                       'rnaSeq_report:Transcripts_Detected')) %>% 
-  dplyr::filter(Institution %in% c("NIMH-HBCC")) %>% 
+  dplyr::filter(Cohort %in% c("NIMH-HBCC-4")) %>% 
   dplyr::filter(`rnaSeq_dissection:Brain_Region` %in% c("ACC","STG"))
 
 ## Download reprocessed counts (ACC and STG)
@@ -119,7 +119,7 @@ colnames(COUNT) <- new_names
 # Parse gene lengths
 gene_lengths = COUNT[,c("Geneid", "Length")]
 COUNT$Length <- NULL
-gene_lengths <- rename(gene_lengths, gene_id = Geneid)
+gene_lengths <- dplyr::rename(gene_lengths, gene_id = Geneid)
 
 # Get ancestry vector calculated using gemtools
 ANCESTRY_ID = 'syn9922992'
@@ -132,7 +132,8 @@ GENOTYPE_ID = 'syn16816490'
 ALL_USED_IDs = c(ALL_USED_IDs, GENOTYPE_ID)
 GENOTYPE = downloadFile(GENOTYPE_ID) %>% 
   dplyr::select(Individual_ID, `SNP_report:Genotyping_Sample_ID`, `SNP_report:Exclude?`) %>% 
-  dplyr::inner_join(ANCESTRY)
+  dplyr::inner_join(ANCESTRY) %>% 
+  dplyr::filter(is.na(`SNP_report:Exclude?`)) #Remove excluded samples here because there are duplicate individuals
 ```
 
 ### Data preprocessing
@@ -164,7 +165,7 @@ METADATA = metadata %>%
 rownames(COUNT) = COUNT$Geneid
 COUNT <- COUNT[,colnames(COUNT) %in% METADATA$SampleID]
 
-ind = METADATA$SampleID[which(METADATA$ReportExclude == 1 | METADATA$GenotypeExclude)]
+ind = METADATA$SampleID[which(METADATA$ReportExclude == 1)]
 writeLines(paste('Following',length(ind),'samples are marked exclude'))
 writeLines(paste(ind, collapse = ', '))
 METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind)) 
