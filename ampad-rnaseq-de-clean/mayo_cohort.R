@@ -127,6 +127,6 @@ metadata <- dplyr::select(metadata, covariates)
 
 # Remove samples from counts matrix
 to_parse <- c("feature", colnames(counts)[colnames(counts) %in% metadata$sampleid])
-foo <- counts[,to_parse]
+counts <- counts[,to_parse]
 
 # TODO: appropriately parse all the synIDs and version to add to provenance with config::get()
