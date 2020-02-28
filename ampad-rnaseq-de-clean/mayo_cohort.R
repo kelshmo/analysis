@@ -126,6 +126,7 @@ covariates <- c("sampleid", "donorid", "source", "diagnosis", "tissue_diagnosis"
 metadata <- dplyr::select(metadata, covariates)
 
 # Remove samples from counts matrix
-counts <- counts[,colnames(counts) %in% metadata$sampleid]
+to_parse <- c("feature", colnames(counts)[colnames(counts) %in% metadata$sampleid])
+foo <- counts[,to_parse]
 
 # TODO: appropriately parse all the synIDs and version to add to provenance with config::get()
