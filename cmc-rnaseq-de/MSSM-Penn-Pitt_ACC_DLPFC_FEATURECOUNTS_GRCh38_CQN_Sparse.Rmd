@@ -785,20 +785,22 @@ residualSigCovars[["PC_res"]][[2]]$plotData
 
 ### Tissue Correlation
 ```{r tissue_correlation}
-hasReps = COVARIATES %>%
+hasReps = rownameToFirstColumn(COVARIATES, "SampleID") %>%
   dplyr::select(Individual_ID) %>% 
   table
 
-df_dlpfc = COVARIATES %>% 
+df_dlpfc = rownameToFirstColumn(COVARIATES, "SampleID") %>% 
   filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
   filter(grepl("DLPFC", Dx.Tissue)) %>% 
   dplyr::select(SampleID, Individual_ID, Dx.Tissue)
-df_acc = COVARIATES %>%
+df_acc = rownameToFirstColumn(COVARIATES, "SampleID") %>%
   filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
   filter(grepl("ACC", Dx.Tissue)) %>% 
   dplyr::select(SampleID, Individual_ID, Dx.Tissue)
 
 df_merge = merge(df_dlpfc, df_acc, by="Individual_ID")
+
+res_std <- rownameToFirstColumn(RESIDUAL.GENE_EXPRESSION, "ensembl_gene_id")
 
 corRes = sapply(res_std$ensembl_gene_id, function(ensGene){
 
@@ -812,7 +814,8 @@ hist(corRes, xlab="Correlation", main="Correlation between ACC and DLPFC sample 
 
 pca = prcomp(t(VOOM.GENE_EXPRESSION$E))
 
-df_pca = merge(pca$x, as.data.frame(cov_dream), by.x="row.names", by.y="SampleID" )
+df_pca = merge(pca$x, as.data.frame(rownameToFirstColumn(COVARIATES, "SampleID")), by.x="row.names", by.y="SampleID" ) %>% 
+  tidyr::separate(Dx.Tissue, into = c("Dx", "Tissue"), sep = "_")
 
 ggplot(df_pca, aes(PC1, PC2, color=Tissue, shape=Institution)) + geom_point() + theme_bw(17) + theme(aspect.ratio=1)
 ```
@@ -828,9 +831,7 @@ RESIDUAL.GENE_EXPRESSION = RESIDUAL.GENE_EXPRESSION +
 
 ### Coexpression of residual expression 
 ```{r coexp2, cache=FALSE, fig.height=5, fig.width=5}
-tmp = RESIDUAL.GENE_EXPRESSION
-tmp[is.na(tmp)] = 0
-cr = cor(t(tmp))
+cr = cor(t(RESIDUAL.GENE_EXPRESSION))
 hist(cr, main = 'Distribution of correlation between genes', xlab = 'Correlation')
 ```
 
@@ -856,7 +857,6 @@ p
 ```{r decompse.normalise.data2.1, fig.height=8, fig.width=12, results='asis'}
 # Eucledian tree based analysis
 COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx.Tissue','Institution')])
-COVARIATES.tmp[is.na(COVARIATES.tmp)] = 0
 
 tree = hclust(as.dist(t(tmp)))
 cols = WGCNA::labels2colors(COVARIATES.tmp);
@@ -875,12 +875,13 @@ gc()
 ```
 
 ### Differential expression analysis
-Genes that are differentially expressed at an FDR <= 0.05 are
-```{r diffExp, fig.height=10, fig.width=15}
-
+Genes that are differentially expressed at an FDR <= 0.05 are:
+```{r set-formula}
 formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
   glue::glue(" + (1|{random_effect})")
-
+```
+`r formula`
+```{r diffExp, fig.height=10, fig.width=15}
 L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
@@ -901,19 +902,35 @@ L5 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION,
                                    formula = formula, 
                                    data = COVARIATES, 
                                    coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueControl_DLPFC"))
-
 L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
                                    coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueOther_DLPFC"))
-L = cbind(L1, L2, L3, L4, L5, L6)
+L7 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueSCZ_ACC"))
+L8 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueControl_DLPFC", "Dx.TissueControl_ACC"))
+L9 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.TissueOther_DLPFC", "Dx.TissueOther_ACC"))
+
+L = cbind(L1, L2, L3, L4, L5, L6, L7, L8, L9)
 
 contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
               glue::glue_collapse(names(L2[L2 != 0]), "-"),
               glue::glue_collapse(names(L3[L3 != 0]), "-"),
               glue::glue_collapse(names(L4[L4 != 0]), "-"),
               glue::glue_collapse(names(L5[L5 != 0]), "-"),
-              glue::glue_collapse(names(L6[L6 != 0]), "-"))
+              glue::glue_collapse(names(L6[L6 != 0]), "-"),
+              glue::glue_collapse(names(L7[L7 != 0]), "-"),
+              glue::glue_collapse(names(L8[L8 != 0]), "-"),
+              glue::glue_collapse(names(L9[L9 != 0]), "-")
+)
 
 # Visualize contrast matrix
 plotContrasts(L) 
@@ -925,7 +942,7 @@ FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                      L = L)
 
 # Get differential expression
-DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
+DE = lapply(glue::glue("L{1:9}"), function(i, FIT){
   topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
