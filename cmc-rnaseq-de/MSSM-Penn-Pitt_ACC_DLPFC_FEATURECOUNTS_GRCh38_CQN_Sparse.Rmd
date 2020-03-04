@@ -1363,15 +1363,6 @@ OFFSET_OBJ = synStore(OFFSET_OBJ, used = ALL_USED_IDs, activityName = activityNa
                       executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(OFFSET_OBJ, annotations = all.annotations)
 
-# Store design matrix
-DM1$design %>%
-  rownameToFirstColumn('SampleID') %>%
-  write.table(file = 'CMC_ACC_DLPFC_Design.tsv', sep = '\t', row.names=F, quote=F)
-DM_OBJ = File('CMC_ACC_DLPFC_Design.tsv', name = 'Design Matrix', parentId = CODE$properties$id)
-DM_OBJ = synStore(DM_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                  executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(DM_OBJ, annotations = all.annotations)
-
 # Store residual gene expression for network analysis - Dx.Tissue
 Dx.Tissue_RESIDUAL.GENE_EXPRESSION %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
