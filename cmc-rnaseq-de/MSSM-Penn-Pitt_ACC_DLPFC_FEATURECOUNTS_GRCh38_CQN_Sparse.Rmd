@@ -998,7 +998,7 @@ multiplot(plotlist = pl, cols = 3)
 ### Normalisation - Dx.Tissue.Gender
 1. Dx.Tissue.Gender is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis, tissue and reported gender)
 2. Individual_ID is chosen as random effect
-```{r iterative.normalisation, results='asis'}
+```{r iterative.normalisation-gender, results='asis'}
 COVARIATES$Dx.Tissue.Gender = factor(paste(COVARIATES$Dx.Tissue, COVARIATES$Reported_Gender, sep = "_"))
 COVARIATES$Reported_Gender <- NULL
 COVARIATES$Dx.Tissue <- NULL
@@ -1059,20 +1059,20 @@ residualSigCovars = runPCAandPlotCorrelations(Dx.Tissue.Gender_RESIDUAL.GENE_EXP
 ```
 
 ### Sanity check
-```{r residualSigCovars.manual, fig.width=12, fig.height=8}
+```{r residualSigCovars.manual-gender, fig.width=12, fig.height=8}
 residualSigCovars[["PC_res"]][[2]]$plotData
 ```
 
 ### Differential expression analysis (Gender-specific SCZ - Control - Other)
 Genes that are differentially expressed at an FDR <= 0.05 are:
-```{r set-formula}
+```{r set-formula-gender}
 formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
   glue::glue(" + (1|{random_effect})")
 ```
 
 `r formula`
 
-```{r diffExp, fig.height=10, fig.width=15}
+```{r diffExp-gender, fig.height=10, fig.width=15}
 L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
@@ -1152,7 +1152,7 @@ p
 ### Normalisation - Tissue
 1. Tissue is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis and reported gender)
 2. Individual_ID is chosen as random effect
-```{r iterative.normalisation, results='asis'}
+```{r iterative.normalisation-tissue, results='asis'}
 ###we might not need this adjustment
 COVARIATES <- tidyr::separate(COVARIATES, Dx.Tissue.Gender, c("Dx", "Tissue", "Reported_Gender")) %>% 
   dplyr::mutate(Dx = factor(Dx, levels = c("SCZ", "Control", "Other")),
@@ -1218,20 +1218,20 @@ residualSigCovars = runPCAandPlotCorrelations(Tissue_RESIDUAL.GENE_EXPRESSION, C
 ```
 
 ### Sanity check
-```{r residualSigCovars.manual, fig.width=12, fig.height=8}
+```{r residualSigCovars.manual-tissue, fig.width=12, fig.height=8}
 residualSigCovars[["PC_res"]][[2]]$plotData
 ```
 
 ### Differential expression analysis (ACC - DLPFC)
 Genes that are differentially expressed at an FDR <= 0.05 are:
-```{r set-formula}
+```{r set-formula-tissue}
 formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
   glue::glue(" + (1|{random_effect})")
 ```
 
 `r formula`
 
-```{r diffExp, fig.height=10, fig.width=15}
+```{r diffExp-tissue, fig.height=10, fig.width=15}
 L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
