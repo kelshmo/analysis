@@ -1,6 +1,6 @@
 ---
 title: "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model"
-author: "Kelsey Montgomery"
+author: "Kelsey Montgomery, Gabriel Hoffman, Thanneer Perumal"
 date: "`r date()`"
 output: html_document
 ---
@@ -12,7 +12,7 @@ library(knit2synapse)
 synLogin()
 
 knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd",
-                                 parentId ="syn9872607",
+                                 parentId ="syn21435176",
                                  folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN - Sparse Model")
 ```
 
@@ -698,7 +698,7 @@ adjust.covars = c(adjust.covars, vars.selected)
 ```
 Clinical, technical and batch variables selected after phase I, II and III of model identification are `r paste(adjust.covars, collapse = ', ')`
 
-### Normalisation
+### Normalisation - Dx.Tissue
 1. Dx.Tissue is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis and tissue)
 2. Individual_ID is chosen as random effect
 ```{r iterative.normalisation, results='asis'}
@@ -746,7 +746,7 @@ plot(VOOM.GENE_EXPRESSION)
 
 # Fit linear model using new weights and new design
 VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
-ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+Dx.Tissue_ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
                                         formula = formula,
                                         data = COVARIATES,
                                         computeResiduals = TRUE)
@@ -770,10 +770,10 @@ violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
 plotVarPart(sortCols(violin_plot))
 
 # Residuals after normalisation
-RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+Dx.Tissue_RESIDUAL.GENE_EXPRESSION = residuals(Dx.Tissue_ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
-residualSigCovars = runPCAandPlotCorrelations(RESIDUAL.GENE_EXPRESSION, COVARIATES,
+residualSigCovars = runPCAandPlotCorrelations(Dx.Tissue_RESIDUAL.GENE_EXPRESSION, COVARIATES,
                                               'adjusted design(voom-normalized)',
                                               isKeyPlot=TRUE)
 ```
@@ -800,7 +800,7 @@ df_acc = rownameToFirstColumn(COVARIATES, "SampleID") %>%
 
 df_merge = merge(df_dlpfc, df_acc, by="Individual_ID")
 
-res_std <- rownameToFirstColumn(RESIDUAL.GENE_EXPRESSION, "ensembl_gene_id")
+res_std <- rownameToFirstColumn(Dx.Tissue_RESIDUAL.GENE_EXPRESSION, "ensembl_gene_id")
 
 corRes = sapply(res_std$ensembl_gene_id, function(ensGene){
 
@@ -824,14 +824,14 @@ ggplot(df_pca, aes(PC1, PC2, color=Tissue, shape=Institution)) + geom_point() + 
 Calculate weighted residuals and add back "Dx.Tissue" to the residuals
 ```{r varsToAddBack}
 # Add variable of interest back to the residuals
-varsToAddIn = grep("Dx.Tissue", colnames(ADJUSTED.FIT$design), value = T)
-RESIDUAL.GENE_EXPRESSION = RESIDUAL.GENE_EXPRESSION +
-  ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(ADJUSTED.FIT$design[,varsToAddIn])
+varsToAddIn = grep("Dx.Tissue", colnames(Dx.Tissue_ADJUSTED.FIT$design), value = T)
+Dx.Tissue_RESIDUAL.GENE_EXPRESSION = Dx.Tissue_RESIDUAL.GENE_EXPRESSION +
+  Dx.Tissue_ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(Dx.Tissue_ADJUSTED.FIT$design[,varsToAddIn])
 ```
 
 ### Coexpression of residual expression 
 ```{r coexp2, cache=FALSE, fig.height=5, fig.width=5}
-cr = cor(t(RESIDUAL.GENE_EXPRESSION))
+cr = cor(t(Dx.Tissue_RESIDUAL.GENE_EXPRESSION))
 hist(cr, main = 'Distribution of correlation between genes', xlab = 'Correlation')
 ```
 
@@ -874,13 +874,15 @@ dev.off()
 gc()
 ```
 
-### Differential expression analysis
+### Differential expression analysis (SCZ - Control - Other)
 Genes that are differentially expressed at an FDR <= 0.05 are:
 ```{r set-formula}
 formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
   glue::glue(" + (1|{random_effect})")
 ```
+
 `r formula`
+
 ```{r diffExp, fig.height=10, fig.width=15}
 L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
@@ -906,30 +908,16 @@ L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION,
                                    formula = formula, 
                                    data = COVARIATES, 
                                    coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueOther_DLPFC"))
-L7 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueSCZ_ACC"))
-L8 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueControl_DLPFC", "Dx.TissueControl_ACC"))
-L9 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueOther_DLPFC", "Dx.TissueOther_ACC"))
 
-L = cbind(L1, L2, L3, L4, L5, L6, L7, L8, L9)
+
+L = cbind(L1, L2, L3, L4, L5, L6)
 
 contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
               glue::glue_collapse(names(L2[L2 != 0]), "-"),
               glue::glue_collapse(names(L3[L3 != 0]), "-"),
               glue::glue_collapse(names(L4[L4 != 0]), "-"),
               glue::glue_collapse(names(L5[L5 != 0]), "-"),
-              glue::glue_collapse(names(L6[L6 != 0]), "-"),
-              glue::glue_collapse(names(L7[L7 != 0]), "-"),
-              glue::glue_collapse(names(L8[L8 != 0]), "-"),
-              glue::glue_collapse(names(L9[L9 != 0]), "-")
+              glue::glue_collapse(names(L6[L6 != 0]), "-")
 )
 
 # Visualize contrast matrix
@@ -942,7 +930,7 @@ FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                      L = L)
 
 # Get differential expression
-DE = lapply(glue::glue("L{1:9}"), function(i, FIT){
+DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
   topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
@@ -989,22 +977,329 @@ pl = list()
 pl[[1]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = log10(Length), y = logFC, color = Direction)) + geom_point() 
 pl[[1]] = pl[[1]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = log10(Length), y = logFC))
-pl[[1]] = pl[[1]] + facet_grid(Comparison~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[1]] = pl[[1]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[1]] = pl[[1]] + theme(legend.position = 'top')
 
 pl[[2]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = percentage_gene_gc_content, y = logFC, color = Direction)) + geom_point()
 pl[[2]] = pl[[2]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = percentage_gene_gc_content, y = logFC))
-pl[[2]] = pl[[2]] + facet_grid(Comparison~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[2]] = pl[[2]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[2]] = pl[[2]] + theme(legend.position = 'top')
 
 pl[[3]] = ggplot(DE %>% 
                     arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = AveExpr, y = logFC, color = Direction)) + geom_point()
 pl[[3]] = pl[[3]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = AveExpr, y = logFC))
-pl[[3]] = pl[[3]] + facet_grid(Comparison~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[3]] = pl[[3]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[3]] = pl[[3]] + theme(legend.position = 'top')
 
 multiplot(plotlist = pl, cols = 3)
+```
+
+### Normalisation - Dx.Tissue.Gender
+1. Dx.Tissue.Gender is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis, tissue and reported gender)
+2. Individual_ID is chosen as random effect
+```{r iterative.normalisation, results='asis'}
+COVARIATES$Dx.Tissue.Gender = factor(paste(COVARIATES$Dx.Tissue, COVARIATES$Reported_Gender, sep = "_"))
+COVARIATES$Reported_Gender <- NULL
+COVARIATES$Dx.Tissue <- NULL
+adjust.covars[1] <- "Dx.Tissue.Gender"
+
+writeLines(paste('Using following covariates in the model:',
+                 paste(adjust.covars, collapse=', '),
+                 'as fixed effects and Individual_ID is chosen as random effect'))
+
+# Post adjusted formula
+random_effect <- "Individual_ID"
+formula <- glue::glue("~ ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+
+# Estimate voom weights with DREAM
+geneExpr = DGEList(NEW.COUNTS)
+geneExpr = edgeR::calcNormFactors(geneExpr)
+
+VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
+                                                               formula = formula,
+                                                               data = COVARIATES,
+                                                               save.plot = TRUE)
+
+plot(VOOM.GENE_EXPRESSION)
+
+# Fit linear model using new weights and new design
+VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
+Dx.Tissue.Gender_ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+                                        formula = formula,
+                                        data = COVARIATES,
+                                        computeResiduals = TRUE)
+
+col_type <- dplyr::select(COVARIATES, c(adjust.covars, "Individual_ID")) %>%
+  dplyr::summarise_all(class) %>% 
+  tidyr::gather(variable, class)
+
+# Model categorical variables as random to report variance fractions
+formula_for_variance_fractions = sapply(1:length(col_type$class), function(i){
+  switch(col_type$class[i], 
+    "factor" = paste0('(1|', col_type$variable[i], ')'),
+    "numeric" = col_type$variable[i])
+  })
+
+formula_for_variance_fractions <- glue::glue("~ ", glue::glue_collapse(formula_for_variance_fractions, sep = " + "))
+
+violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
+                                                         formula = formula_for_variance_fractions,
+                                                         data = COVARIATES)
+plotVarPart(sortCols(violin_plot))
+
+# Residuals after normalisation
+Dx.Tissue.Gender_RESIDUAL.GENE_EXPRESSION = residuals(Dx.Tissue.Gender_ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+
+# Find PC of residual gene expression and significant covariates that are highly correlated with PCs
+residualSigCovars = runPCAandPlotCorrelations(Dx.Tissue.Gender_RESIDUAL.GENE_EXPRESSION, COVARIATES,
+                                              'adjusted design(voom-normalized)',
+                                              isKeyPlot=TRUE)
+```
+
+### Sanity check
+```{r residualSigCovars.manual, fig.width=12, fig.height=8}
+residualSigCovars[["PC_res"]][[2]]$plotData
+```
+
+### Differential expression analysis (Gender-specific SCZ - Control - Other)
+Genes that are differentially expressed at an FDR <= 0.05 are:
+```{r set-formula}
+formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+```
+
+`r formula`
+
+```{r diffExp, fig.height=10, fig.width=15}
+L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.Tissue.GenderSCZ_ACC_Female", "Dx.Tissue.GenderControl_ACC_Female"))
+L2 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.Tissue.GenderSCZ_ACC_Male", "Dx.Tissue.GenderControl_ACC_Male"))
+L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.Tissue.GenderSCZ_DLPFC_Female", "Dx.Tissue.GenderControl_DLPFC_Female"))
+L4 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Dx.Tissue.GenderSCZ_DLPFC_Male", "Dx.Tissue.GenderControl_DLPFC_Male"))
+
+L = cbind(L1, L2, L3, L4)
+
+contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
+              glue::glue_collapse(names(L2[L2 != 0]), "-"),
+              glue::glue_collapse(names(L3[L3 != 0]), "-"),
+              glue::glue_collapse(names(L4[L4 != 0]), "-")
+)
+
+# Visualize contrast matrix
+plotContrasts(L) 
+
+# Fit contrast
+FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
+                                     formula = formula,
+                                     data = COVARIATES,
+                                     L = L)
+
+# Get differential expression
+DE_2 = lapply(glue::glue("L{1:4}"), function(i, FIT){
+  topTable(FIT, coef=i, number = Inf) %>%
+    rownameToFirstColumn('gene_id') %>% 
+    left_join(backgroundGenes)
+}, FIT.CONTR) 
+names(DE_2) <- contrast
+
+DE_2 = DE_2%>% 
+  rbindlist(idcol = 'Comparison') %>%
+  dplyr::mutate(Comparison = gsub('Dx.Tissue.Gender','',Comparison),
+                Direction = logFC/abs(logFC),
+                Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
+                Direction = as.character(Direction)) %>% 
+  tidyr::separate(Comparison, into = c('to.state','ref.state'), sep = '-') %>%
+  tidyr::separate(to.state, into = c('to.Dx', 'to.Tissue', 'to.Gender'), sep = '_') %>%
+  tidyr::separate(ref.state, into = c('ref.Dx', 'ref.Tissue', 'ref.Gender'), sep = '_') %>% 
+  left_join(Ensemble2HGNC) %>%
+  left_join(gene_lengths %>% rownameToFirstColumn('gene_id'))
+DE_2$Direction[DE_2$adj.P.Val > 0.05 | abs(DE_2$logFC) < log2(1.2)] = 'NONE'
+
+tmp = DE_2 %>%
+  dplyr::filter(adj.P.Val <= 0.05) %>%
+  dplyr::select(ensembl_gene_id, to.Dx, to.Tissue, to.Gender, ref.Dx, ref.Tissue, ref.Gender, logFC) %>%
+  group_by(to.Dx, to.Tissue, to.Gender, ref.Dx, ref.Tissue, ref.Gender) %>%
+  dplyr::summarise(FDR_0_05 = length(unique(ensembl_gene_id)))
+
+tmp1 = DE_2 %>%
+  dplyr::filter(adj.P.Val <= 0.05, abs(logFC) >= log2(1.2)) %>%
+  dplyr::select(ensembl_gene_id, to.Dx, to.Tissue, to.Gender, ref.Dx, ref.Tissue, ref.Gender, logFC) %>%
+  group_by(to.Dx, to.Tissue, to.Gender, ref.Dx, ref.Tissue, ref.Gender) %>%
+  dplyr::summarise(FDR_0_05_FC_1.2 = length(unique(ensembl_gene_id)))
+
+kable(full_join(tmp,tmp1))
+
+p = ggplot(DE_2, aes(y = -log10(adj.P.Val), x = logFC, color = Direction)) + geom_point() + xlim(c(-1,1))
+p = p + scale_color_manual(values = c('green','grey','red')) + theme_bw() %+replace% theme(legend.position = 'top')
+p = p + facet_grid(ref.Tissue~.+ref.Gender, scales = 'fixed')
+p = p + ggtitle("Differential Expression between Schizophrenia and Control")
+p
+```
+
+### Normalisation - Tissue
+1. Tissue is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis and reported gender)
+2. Individual_ID is chosen as random effect
+```{r iterative.normalisation, results='asis'}
+###we might not need this adjustment
+COVARIATES <- tidyr::separate(COVARIATES, Dx.Tissue.Gender, c("Dx", "Tissue", "Reported_Gender")) %>% 
+  dplyr::mutate(Dx = factor(Dx, levels = c("SCZ", "Control", "Other")),
+                Tissue = factor(Tissue), 
+                Reported_Gender = factor(Reported_Gender))
+
+adjust.covars[1] <- "Dx"
+
+adjust.covars <- c(adjust.covars, "Tissue", "Reported_Gender")
+
+writeLines(paste('Using following covariates in the model:',
+                 paste(adjust.covars, collapse=', '),
+                 'as fixed effects and Individual_ID is chosen as random effect'))
+
+# Post adjusted formula
+random_effect <- "Individual_ID"
+formula <- glue::glue("~ ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+
+# Estimate voom weights with DREAM
+geneExpr = DGEList(NEW.COUNTS)
+geneExpr = edgeR::calcNormFactors(geneExpr)
+
+VOOM.GENE_EXPRESSION = variancePartition::voomWithDreamWeights(counts = geneExpr, 
+                                                               formula = formula,
+                                                               data = COVARIATES,
+                                                               save.plot = TRUE)
+
+plot(VOOM.GENE_EXPRESSION)
+
+# Fit linear model using new weights and new design
+VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
+Tissue_ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+                                        formula = formula,
+                                        data = COVARIATES,
+                                        computeResiduals = TRUE)
+
+col_type <- dplyr::select(COVARIATES, c(adjust.covars, "Individual_ID")) %>%
+  dplyr::summarise_all(class) %>% 
+  tidyr::gather(variable, class)
+
+# Model categorical variables as random to report variance fractions
+formula_for_variance_fractions = sapply(1:length(col_type$class), function(i){
+  switch(col_type$class[i], 
+    "factor" = paste0('(1|', col_type$variable[i], ')'),
+    "numeric" = col_type$variable[i])
+  })
+
+formula_for_variance_fractions <- glue::glue("~ ", glue::glue_collapse(formula_for_variance_fractions, sep = " + "))
+
+violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
+                                                         formula = formula_for_variance_fractions,
+                                                         data = COVARIATES)
+plotVarPart(sortCols(violin_plot))
+
+# Residuals after normalisation
+Tissue_RESIDUAL.GENE_EXPRESSION = residuals(Tissue_ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+
+# Find PC of residual gene expression and significant covariates that are highly correlated with PCs
+residualSigCovars = runPCAandPlotCorrelations(Tissue_RESIDUAL.GENE_EXPRESSION, COVARIATES,
+                                              'adjusted design(voom-normalized)',
+                                              isKeyPlot=TRUE)
+```
+
+### Sanity check
+```{r residualSigCovars.manual, fig.width=12, fig.height=8}
+residualSigCovars[["PC_res"]][[2]]$plotData
+```
+
+### Differential expression analysis (ACC - DLPFC)
+Genes that are differentially expressed at an FDR <= 0.05 are:
+```{r set-formula}
+formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + ")) %>% 
+  glue::glue(" + (1|{random_effect})")
+```
+
+`r formula`
+
+```{r diffExp, fig.height=10, fig.width=15}
+L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("TissueDLPFC"))
+L2 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("DxSCZ", "DxControl"))
+L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
+                                   formula = formula, 
+                                   data = COVARIATES, 
+                                   coefficient = c("Reported_GenderMale"))
+
+L = cbind(L1, L2, L3)
+
+contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
+              glue::glue_collapse(names(L2[L2 != 0]), "-"),
+              glue::glue_collapse(names(L3[L3 != 0]), "-")
+)
+
+# Visualize contrast matrix
+plotContrasts(L) 
+
+# Fit contrast
+FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
+                                     formula = formula,
+                                     data = COVARIATES,
+                                     L = L)
+
+# Get differential expression
+DE_3 = lapply(glue::glue("L{1:3}"), function(i, FIT){
+  topTable(FIT, coef=i, number = Inf) %>%
+    rownameToFirstColumn('gene_id') %>% 
+    left_join(backgroundGenes)
+}, FIT.CONTR) 
+names(DE_3) <- contrast
+
+DE_3 = DE_3%>% 
+  rbindlist(idcol = 'Comparison') %>%
+  dplyr::mutate(Comparison = gsub('Dx.Tissue','',Comparison),
+                Direction = logFC/abs(logFC),
+                Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
+                Direction = as.character(Direction)) %>% 
+  dplyr::mutate(Comparison = ifelse(Comparison %in% "Reported_GenderMale", "Female-Male", Comparison),
+                Comparison = ifelse(Comparison %in% "DxSCZ-DxControl", "SCZ-Control", Comparison),
+                Comparison = ifelse(Comparison %in% "TissueDLPFC", "ACC-DLPFC", Comparison)) %>% 
+  left_join(Ensemble2HGNC) %>%
+  left_join(gene_lengths %>% rownameToFirstColumn('gene_id'))
+DE_3$Direction[DE_3$adj.P.Val > 0.05 | abs(DE_3$logFC) < log2(1.2)] = 'NONE'
+
+tmp = DE_3 %>%
+  dplyr::filter(adj.P.Val <= 0.05) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
+  dplyr::summarise(FDR_0_05 = length(unique(ensembl_gene_id)))
+
+tmp1 = DE_3 %>%
+  dplyr::filter(adj.P.Val <= 0.05, abs(logFC) >= log2(1.2)) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
+  dplyr::summarise(FDR_0_05_FC_1.2 = length(unique(ensembl_gene_id)))
+
+kable(full_join(tmp,tmp1))
+
+p = ggplot(DE_3, aes(y = -log10(adj.P.Val), x = logFC, color = Direction)) + geom_point() + xlim(c(-1,1))
+p = p + scale_color_manual(values = c('green','grey','red')) + theme_bw() %+replace% theme(legend.position = 'top')
+p = p + facet_grid(Comparison~., scales = 'fixed')
+p
 ```
 
 ### Gene set enrichment analysis
@@ -1092,7 +1387,6 @@ LCOUNT_OBJ = synStore(LCOUNT_OBJ, used = ALL_USED_IDs, activityName = activityNa
                       executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(LCOUNT_OBJ, annotations = all.annotations)
 
-
 # Store cqn offsets
 CQN.GENE_EXPRESSION$offset %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
@@ -1111,21 +1405,61 @@ DM_OBJ = synStore(DM_OBJ, used = ALL_USED_IDs, activityName = activityName,
                   executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(DM_OBJ, annotations = all.annotations)
 
-# Store residual gene expression for network analysis
-RESIDUAL.GENE_EXPRESSION %>%
+# Store residual gene expression for network analysis - Dx.Tissue
+Dx.Tissue_RESIDUAL.GENE_EXPRESSION %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_DLPFC_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
-nEXP_OBJ = File('CMC_ACC_DLPFC_netResidualExpression.tsv', 
-                name = 'Normalised, covariates removed residual expression (for network analysis)', 
+  write.table(file = 'CMC_ACC_DLPFC_Dx.Tissue_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
+nEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_netResidualExpression.tsv', 
+                name = 'Dx.Tissue Normalised, covariates removed residual expression (for network analysis)', 
                 parentId = CODE$properties$id)
 nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                     executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(nEXP_OBJ, annotations = all.annotations)
 
-# Store differential expression results
-write.table(DE, file = 'CMC_ACC_DLPFC_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
-DEXP_OBJ = File('CMC_ACC_DLPFC_DiffExpression.tsv', 
+# Store residual gene expression for network analysis - Dx.Tissue.Gender
+Dx.Tissue.Gender_RESIDUAL.GENE_EXPRESSION %>%
+  rownameToFirstColumn('ensembl_gene_id') %>%
+  write.table(file = 'CMC_ACC_DLPFC_Dx.Tissue.Gender_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
+nEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue.Gender_netResidualExpression.tsv', 
+                name = 'Dx.Tissue.Gender Normalised, covariates removed residual expression (for network analysis)', 
+                parentId = CODE$properties$id)
+nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
+                    executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(nEXP_OBJ, annotations = all.annotations)
+
+# Store residual gene expression for network analysis - Tissue
+Tissue_RESIDUAL.GENE_EXPRESSION %>%
+  rownameToFirstColumn('ensembl_gene_id') %>%
+  write.table(file = 'CMC_ACC_DLPFC_Tissue_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
+nEXP_OBJ = File('CMC_ACC_DLPFC_Tissue_netResidualExpression.tsv', 
+                name = 'Tissue Normalised, covariates removed residual expression (for network analysis)', 
+                parentId = CODE$properties$id)
+nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
+                    executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(nEXP_OBJ, annotations = all.annotations)
+
+# Store differential expression results - Dx.Tissue
+write.table(DE, file = 'CMC_ACC_DLPFC_Dx.Tissue_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
+DEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_DiffExpression.tsv', 
                 name = 'Differential Expression Results (Dx.Tissue)', 
+                parentId = CODE$properties$id)
+DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
+                    executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(DEXP_OBJ, annotations = all.annotations)
+
+# Store differential expression results - Dx.Tissue.Gender
+write.table(DE_2, file = 'CMC_ACC_DLPFC_Dx.Tissue.Gender_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
+DEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue.Gender_DiffExpression.tsv', 
+                name = 'Differential Expression Results (Dx.Tissue.Gender)', 
+                parentId = CODE$properties$id)
+DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
+                    executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(DEXP_OBJ, annotations = all.annotations)
+
+# Store differential expression results - Tissue
+write.table(DE_3, file = 'CMC_ACC_DLPFC_Tissue_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
+DEXP_OBJ = File('CMC_ACC_DLPFC_Tissue_DiffExpression.tsv', 
+                name = 'Differential Expression Results (Tissue)', 
                 parentId = CODE$properties$id)
 DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                     executed = thisFile, activityDescription = activityDescription)
@@ -1140,10 +1474,29 @@ ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityNa
                       executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
 
-# Store adjusted fit linear mixed model object as RDS
-saveRDS(ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_dream-output.rds')
-ADJ_OBJ = File('CMC_ACC_DLPFC_dream-output.rds',
-               name = 'Dream Output object', 
+# Store adjusted fit linear mixed model object as RDS - Dx.Tissue
+saveRDS(Dx.Tissue_ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_Dx.Tissue_dream-output.rds')
+ADJ_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_dream-output.rds',
+               name = 'Dream Output object - Dx.Tissue', 
+               parentId = CODE$properties$id)
+ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
+                   executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(ADJ_OBJ, annotations = all.annotations)
+
+# Store adjusted fit linear mixed model object as RDS - Dx.Tissue.Gender
+saveRDS(Dx.Tissue.Gender_ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_Dx.Tissue.Gender_dream-output.rds')
+ADJ_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue.Gender_dream-output.rds',
+               name = 'Dream Output object - Dx.Tissue.Gender', 
+               parentId = CODE$properties$id)
+
+ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
+                   executed = thisFile, activityDescription = activityDescription)
+synSetAnnotations(ADJ_OBJ, annotations = all.annotations)
+
+# Store adjusted fit linear mixed model object as RDS - Tissue
+saveRDS(Dx.Tissue.Gender_ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_Tissue_dream-output.rds')
+ADJ_OBJ = File('CMC_ACC_DLPFC_Tissue_dream-output.rds',
+               name = 'Dream Output object - Tissue', 
                parentId = CODE$properties$id)
 ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
                    executed = thisFile, activityDescription = activityDescription)
