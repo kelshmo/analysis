@@ -1302,39 +1302,6 @@ p = p + facet_grid(Comparison~., scales = 'fixed')
 p
 ```
 
-### Gene set enrichment analysis
-Using Fisher's exact test for gene set enrichment analysis
-```{r enrich.de, fig.height=16, fig.width=16}
-diffexp.genes = DE %>%
-  dlply(.(Comparison, Tissue), .fun = function(x){
-    tmp = x$hgnc_symbol[x$adj.P.Val <= 0.05] %>% unique
-    tmp = tmp[!is.na(tmp)]
-  })
-diffexp.genes = diffexp.genes[sapply(diffexp.genes, length) > 20]
-backgroundGenes = unique(DE$hgnc_symbol)
-
-# Download all related genesets from synapse
-geneset.files = synGetChildren("syn3240583", includeTypes=list("file"))$asList()
-genesets.to.test = purrr::map(geneset.files, .f = function(fileList){
-  tmp = downloadFile(fileList$id) %>%
-    dlply(.(Name), .fun = function(x){
-      str_split(x$symBeforeOverlap, '\\|') %>% unlist %>% unique
-    })
-  }) %>%
-  CovariateAnalysis::filterGeneSets(backgroundGenes) %>%
-  do.call(c,.)
-
-# Perform enrichment analysis
-enrichment.results = llply(diffexp.genes, .fun = function(x, genesetsToTest, backgroundGenes){
-   ldply(genesetsToTest, .fun = function(y,x,backgroundGenes){
-     CovariateAnalysis::fisherEnrichment(x, y, backgroundGenes)
-    }, x, backgroundGenes, .parallel = TRUE) %>%
-    dplyr::mutate(fdr = p.adjust(pval, method = 'fdr'))
-}, genesets.to.test, backgroundGenes) %>%
-  rbindlist(idcol = 'Comparison', use.names = T, fill = T) %>%
-  tidyr::separate(Comparison, c('Name', 'Region'), sep = '\\.') %>%
-  dplyr::rename(Comparison = Name, Category = .id)
-```
 
 ### Store files in synapse
 ```{r synapse.store, include=FALSE, eval=TRUE, cache=FALSE}
@@ -1464,15 +1431,6 @@ DEXP_OBJ = File('CMC_ACC_DLPFC_Tissue_DiffExpression.tsv',
 DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                     executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(DEXP_OBJ, annotations = all.annotations)
-
-# Store enrichment results
-write.table(enrichment.results, file = 'CMC_ACC_DLPFC_EnrichResults.tsv', sep = '\t', row.names=F, quote=F)
-ENRICH_OBJ = File('CMC_ACC_DLPFC_EnrichResults.tsv', 
-                  name = 'Enrichment Analysis Results (Dx.Tissue)', 
-                  parentId = CODE$properties$id)
-ENRICH_OBJ = synStore(ENRICH_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                      executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(ENRICH_OBJ, annotations = all.annotations)
 
 # Store adjusted fit linear mixed model object as RDS - Dx.Tissue
 saveRDS(Dx.Tissue_ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_Dx.Tissue_dream-output.rds')
