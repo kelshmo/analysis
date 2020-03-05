@@ -696,6 +696,9 @@ vars.selected = selectCovarsToAdjust(phase3.covars, adjust.covars,
 
 adjust.covars = c(adjust.covars, vars.selected)
 ```
+#### Variables included in the model 
+Covariates were added as fixed effects iteratively in three phases if model improvement by BIC criteria was observed in the majority of genes. Clinical, ancestry and sample-specific technical variables were tested for model improvement first. Covariates related to batch effects were next tested for model improvement and finally, RNASeq alignment-specific covariates.
+
 Clinical, technical and batch variables selected after phase I, II and III of model identification are `r paste(adjust.covars, collapse = ', ')`
 
 ### Normalisation - Dx.Tissue
@@ -746,7 +749,7 @@ plot(VOOM.GENE_EXPRESSION)
 
 # Fit linear model using new weights and new design
 VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
-Dx.Tissue_ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION, 
+Dx.Tissue_ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                         formula = formula,
                                         data = COVARIATES,
                                         computeResiduals = TRUE)
@@ -767,6 +770,7 @@ formula_for_variance_fractions <- glue::glue("~ ", glue::glue_collapse(formula_f
 violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
                                                          formula = formula_for_variance_fractions,
                                                          data = COVARIATES)
+
 plotVarPart(sortCols(violin_plot))
 
 # Residuals after normalisation
