@@ -211,7 +211,7 @@ backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
 
 # Define biomart object
 mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-                host = "uswest.ensembl.org", 
+                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
