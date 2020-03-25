@@ -41,8 +41,9 @@ synLogin()
 
 library(doParallel)
 library(foreach)
+library(future)
 
-cl = makeCluster(detectCores()-2)
+cl = makeCluster(availableCores()-2)
 
 registerDoParallel(cl)
 
