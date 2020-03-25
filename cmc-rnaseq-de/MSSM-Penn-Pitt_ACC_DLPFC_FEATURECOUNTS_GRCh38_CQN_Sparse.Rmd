@@ -32,7 +32,6 @@ library(edgeR)
 library(cqn)
 library(lme4)
 library(biomaRt)
-#devtools::install_github("GabrielHoffman/variancePartition@613dfe9")
 library(variancePartition)
 library(synapser)
 library(knitr)
@@ -79,7 +78,7 @@ downloadFile_version <- function(id , version){
   fread(synGet(id, version = version)$path, data.table = F)
 }
 # Download reprocessed counts
-counts = 'syn21071622'
+counts = 'syn21754352'
 ALL_USED_IDs = counts
 counts = downloadFile(counts) %>% data.frame()
 counts$Chr <- NULL
@@ -109,7 +108,8 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 metadata = 'syn16816488' 
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = metadata
 metadata = downloadFile_version(metadata, version = 14)  %>% 
-  dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
+  dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, 
+                Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_report:Ribozero_Batch', 'rnaSeq_report:Library_Batch', 
                                       'rnaSeq_report:Flowcell_Batch','rnaSeq_dissection:Brain_Region',
