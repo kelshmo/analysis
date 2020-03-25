@@ -211,9 +211,8 @@ backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
 
 # Define biomart object
 mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-                host = "sep2019.archive.ensembl.org", 
-                dataset = "hsapiens_gene_ensembl",
-                mirror = "uswest")
+                host = "uswest.ensembl.org", 
+                dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
 Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
