@@ -43,7 +43,7 @@ library(doParallel)
 library(foreach)
 library(future)
 
-cl = makeCluster(availableCores()-2)
+cl = makeCluster((availableCores()-2)/2)
 
 registerDoParallel(cl)
 
