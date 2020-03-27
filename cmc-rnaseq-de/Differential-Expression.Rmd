@@ -73,13 +73,11 @@ thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq
 downloadFile <- function(id){
   fread(synGet(id)$path, data.table = F)
 }
-downloadFile_version <- function(id , version){
-  fread(synGet(id, version = version)$path, data.table = F)
-}
+
 # Download CQN counts
 CQN_ID = "syn21825509"
-ALL_USED_IDs = c(ALL_USED_IDs, CQN_ID)
-CQN.GENE_EXPRESSION$E = downloadFile(CQN_ID) %>% 
+ALL_USED_IDs = c(CQN_ID)
+CQN.GENE_EXPRESSION = downloadFile(CQN_ID) %>% 
   tibble::column_to_rownames(var = "ensembl_gene_id")
   
 # Download filtered counts
@@ -145,7 +143,7 @@ setMethod("plot", signature(x="EList", y="missing"),
 plot(VOOM.GENE_EXPRESSION)
 
 # Fit linear model using new weights and new design
-VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$E
+VOOM.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION
 ADJUSTED.FIT = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                         formula = formula,
                                         data = COVARIATES,
@@ -171,7 +169,7 @@ violin_plot <- variancePartition::fitExtractVarPartModel(VOOM.GENE_EXPRESSION,
 plotVarPart(sortCols(violin_plot))
 
 # Residuals after normalisation
-RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION$E)
+RESIDUAL.GENE_EXPRESSION = residuals(ADJUSTED.FIT, CQN.GENE_EXPRESSION)
 
 # Find PC of residual gene expression and significant covariates that are highly correlated with PCs
 residualSigCovars = runPCAandPlotCorrelations(RESIDUAL.GENE_EXPRESSION, COVARIATES,
