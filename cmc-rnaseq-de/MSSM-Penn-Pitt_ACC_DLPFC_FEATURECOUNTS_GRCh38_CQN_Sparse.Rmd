@@ -59,7 +59,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r synapse.parameters, include=FALSE, cache=TRUE}
-parentId = 'syn9872607';
+parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN normalisation (ACC and DLPFC)';
 
@@ -108,7 +108,7 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 #Get Metadata
 metadata = 'syn16816488' 
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = metadata
-metadata = downloadFile_version(metadata, version = 14)  %>% 
+metadata = downloadFile_version(metadata, version = 16)  %>% 
   dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, 
                 Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
