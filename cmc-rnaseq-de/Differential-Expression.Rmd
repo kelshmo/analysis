@@ -93,8 +93,16 @@ ALL_USED_IDs = c(ALL_USED_IDs, COVAR_ID)
 COVARIATES = downloadFile(COVAR_ID) %>% 
   tibble::column_to_rownames(var = "SampleID")
 
-FactorCovariates <- c("Individual_ID", "Reported_Gender", "Dx.Tissue")
+# Set variable class
+FactorCovariates <- c("Individual_ID", "Institution", "Reported_Gender", "LibraryBatch", "Dx.Tissue", "RibozeroBatch", "FlowcellBatch")
 COVARIATES[,FactorCovariates] = lapply(COVARIATES[,FactorCovariates], factor)
+
+ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
+                    "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads","AlignmentRate", 
+                    "EV.1", "EV.2", "EV.3", "EV.4", "EV.5")
+COVARIATES[,ContCovariates] = lapply(COVARIATES[,ContCovariates], function(x){
+  x = as.numeric(as.character(gsub('[\\,\\%]','',x)))
+})
 
 # Set covariates to adjust for from model selection
 adjust.covars <- c("Dx.Tissue", "RIN", "IntronicRate")
