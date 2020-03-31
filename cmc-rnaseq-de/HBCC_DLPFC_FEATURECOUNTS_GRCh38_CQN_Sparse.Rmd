@@ -193,7 +193,6 @@ METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 ```{r preprocess.data1, results='asis'}
 # Match covariates to expression data
 indToRetain = intersect(METADATA$SampleID, colnames(COUNT))
-removedIDs = setdiff(colnames(COUNT), METADATA$SampleID)
 
 rownames(COUNT) <- COUNT$Geneid
 COUNT = COUNT[,indToRetain]
@@ -206,7 +205,7 @@ METADATA %>%
   dplyr::summarise(count = n()) %>% 
   kable()
 ```
-Following sample are removed `r paste(removedIDs, collapse = ',')`
+
 
 ```{r gene.param, include = F}
 ## Get GC content from biomart
@@ -483,8 +482,9 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
-  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC") %>% 
+  dplyr::mutate(Tissue = "DLPFC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))

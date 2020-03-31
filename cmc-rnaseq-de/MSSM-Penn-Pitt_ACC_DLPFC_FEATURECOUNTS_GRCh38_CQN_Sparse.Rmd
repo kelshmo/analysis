@@ -371,22 +371,6 @@ Following is the distribution of biotypes
 ### Outlier analysis
 Detect outlier samples based on their expression (logCPM) pattern
 ```{r detect.outliers, fig.height=8, fig.width=8, results='asis', cache = FALSE}
-indToRemove = c('MSSM_RNA_ACC_BP_24', 'MSSM_RNA_ACC_375', 'MSSM_RNA_ACC_170', 'MSSM_RNA_ACC_315', 'MSSM_RNA_ACC_250',
-                'MSSM_RNA_ACC_21', 'MSSM_RNA_ACC_356', 'MSSM_RNA_ACC_318', 'MSSM_RNA_ACC_222', 'MSSM_RNA_ACC_220',
-                'MSSM_RNA_ACC_379', 'MSSM_RNA_PFC_133', 'MSSM_RNA_PFC_139', 'MSSM_RNA_PFC_163', 'MSSM_RNA_PFC_260',
-                'MSSM_RNA_PFC_299', 'MSSM_RNA_PFC_361', 'MSSM_RNA_PFC_89', 'MSSM_RNA_PFC_319', 'MSSM_RNA_PFC_348',
-                'MSSM_RNA_PFC_354', 'MSSM_RNA_PFC_60', 'PENN_RNA_PFC_71', 'PENN_RNA_PFC_56',  "MSSM_RNA_ACC_310",
-                "MSSM_RNA_ACC_51",  "MSSM_RNA_ACC_254", "MSSM_RNA_ACC_28", "MSSM_RNA_ACC_293", "MSSM_RNA_ACC_233",
-                "MSSM_RNA_ACC_167", "MSSM_RNA_ACC_353", "MSSM_RNA_ACC_355", "MSSM_RNA_ACC_211", "PENN_RNA_ACC_122",
-                "PENN_RNA_ACC_049", "PENN_RNA_ACC_052", "PENN_RNA_ACC_068", "PENN_RNA_ACC_070", "PITT_RNA_ACC_10020",
-                "PITT_RNA_ACC_1240", "PITT_RNA_ACC_1284", "PITT_RNA_ACC_700", "PITT_RNA_ACC_857", "PITT_RNA_ACC_BP_1589",
-                "MSSM_RNA_PFC_230", "MSSM_RNA_PFC_304", "MSSM_RNA_PFC_309", "MSSM_RNA_PFC_329", "MSSM_RNA_PFC_82",
-                "PENN_RNA_PFC_5", "PENN_RNA_PFC_58", "PENN_RNA_PFC_99", "PITT_RNA_PFC_1284")
-
-indToRemove = c(indToRemove, c("MSSM_RNA_ACC_224", "MSSM_RNA_ACC_240", "MSSM_RNA_ACC_BP_11", "MSSM_RNA_ACC_42", "MSSM_RNA_ACC_BP_15", "PENN_RNA_ACC_003", "MSSM_RNA_ACC_374"))
-
-indToRemove = c(indToRemove, "PITT_RNA_BP_PFC_1770")
-
 # Find principal components of expression to plot
 PC <- prcomp(voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E, scale.=T, center = T)
 
@@ -446,8 +430,6 @@ NEW.COUNTS = PROCESSED_COUNTS$filteredExprMatrix$counts
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
 
 Based on the expression pattern following samples were tagged as outliers: `r paste(outliers, collapse = ', ')` 
-
-Based on prior evidence, investigators elected to remove: `r setdiff(indToRemove, outliers)[setdiff(indToRemove,outliers) %in% colnames(counts)]`
 
 Distribution of samples are:
 `r kable(tmp)`
