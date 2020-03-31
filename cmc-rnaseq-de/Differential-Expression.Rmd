@@ -78,7 +78,8 @@ downloadFile <- function(id){
 CQN_ID = "syn21825509"
 ALL_USED_IDs = c(CQN_ID)
 CQN.GENE_EXPRESSION = downloadFile(CQN_ID) %>% 
-  tibble::column_to_rownames(var = "ensembl_gene_id")
+  tibble::column_to_rownames(var = "ensembl_gene_id") %>% 
+  data.matrix()
   
 # Download filtered counts
 COUNTS_ID = "syn21825508"
@@ -91,6 +92,9 @@ COVAR_ID = "syn21825507"
 ALL_USED_IDs = c(ALL_USED_IDs, COVAR_ID)
 COVARIATES = downloadFile(COVAR_ID) %>% 
   tibble::column_to_rownames(var = "SampleID")
+
+FactorCovariates <- c("Individual_ID", "Reported_Gender", "Dx.Tissue")
+COVARIATES[,FactorCovariates] = lapply(COVARIATES[,FactorCovariates], factor)
 
 # Set covariates to adjust for from model selection
 adjust.covars <- c("Dx.Tissue", "RIN", "IntronicRate")
