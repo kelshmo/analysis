@@ -497,24 +497,6 @@ p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element
          size = guide_legend(nrow = 2))
 p
 # p <- p + geom_text(aes(label= SampleID), size=4, hjust=0)
-
-#MDS
-tmp.mds <- dist(t(tmp))
-mds <- cmdscale(tmp.mds)
-#Plot MDS
-plotdata <- data.frame(SampleID = rownames(mds),
-                       MDS1= mds[,1],
-                       MDS2= mds[,2])
-
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
-
-p <- ggplot(plotdata, aes(MDS1,MDS2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("MDS MSSM/Penn/Pitt Cohort") + 
-  guides(colour = guide_legend(nrow = 2),
-         shape = guide_legend(nrow = 2),
-         size = guide_legend(nrow = 2))
-p
 ```
 Tree based clustering of samples
 ```{r decompse.normalise.data.1, fig.height=6, fig.width=10, results='asis'}
