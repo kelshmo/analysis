@@ -1,6 +1,6 @@
 ---
 title: "HBCC - ACC - STG - DREAM - FEATURECOUNTS - GRCh38 - CQN"
-author: "Kelsey Montgomery, Gabriel Hoffman and Thanneer Perumal"
+author: "Kelsey Montgomery, Gabriel Hoffman and Thaneer Perumal"
 date: "`r date()`"
 output: html_document
 ---
@@ -89,7 +89,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ID
-metadata = downloadFile_version(METADATA_QC_ID, version = 16) %>%
+metadata = downloadFile_version(METADATA_QC_ID, version = 18) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
@@ -107,7 +107,7 @@ metadata = downloadFile_version(METADATA_QC_ID, version = 16) %>%
   dplyr::filter(`rnaSeq_dissection:Brain_Region` %in% c("ACC","STG"))
 
 ## Download reprocessed counts (ACC and STG)
-counts = 'syn21754352'
+counts = 'syn21867866'
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = counts
 COUNT = downloadFile(counts) %>% data.frame()
 COUNT$Chr <- NULL

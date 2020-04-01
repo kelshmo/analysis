@@ -89,7 +89,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ACC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ACC_ID
-metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 16) %>%
+metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 18) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('Cohort',
                                       'rnaSeq_isolation:RIN',
@@ -108,7 +108,7 @@ metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 16) %>%
   dplyr::filter(Cohort %in% c("NIMH-HBCC-5"))
 
 ## Download reprocessed counts (ACC)
-counts = 'syn21754352'
+counts = 'syn21867762'
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = counts
 COUNT = downloadFile(counts) %>% data.frame()
 COUNT$Chr <- NULL
