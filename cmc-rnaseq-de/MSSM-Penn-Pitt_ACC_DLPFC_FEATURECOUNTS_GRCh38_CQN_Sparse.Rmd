@@ -79,7 +79,7 @@ downloadFile_version <- function(id , version){
   fread(synGet(id, version = version)$path, data.table = F)
 }
 # Download reprocessed counts
-counts = 'syn21754352'
+counts = 'syn21867938'
 ALL_USED_IDs = counts
 counts = downloadFile(counts) %>% data.frame()
 counts$Chr <- NULL
@@ -108,7 +108,7 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 #Get Metadata
 metadata = 'syn16816488' 
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = metadata
-metadata = downloadFile_version(metadata, version = 16)  %>% 
+metadata = downloadFile_version(metadata, version = 17)  %>% 
   dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, 
                 Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',

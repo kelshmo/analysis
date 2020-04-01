@@ -1,6 +1,6 @@
 ---
 title: "Differential Expression"
-author: "Kelsey Montgomery, Gabriel Hoffman, Thanneer Perumal"
+author: "Kelsey Montgomery, Gabriel Hoffman, Thaneer Perumal"
 date: "`r date()`"
 output: html_document
 ---
@@ -27,22 +27,25 @@ library(stringr)
 library(R.utils)
 library(ggplot2)
 library(limma)
+library(psych)
 library(lme4)
 library(biomaRt)
-library(variancePartition)
+library(variancePartition) #1.17.9
+library(edgeR)
 library(synapser)
 library(knitr)
 library(githubr) # get the package from devtools::install_github('brian-bot/githubr')
 
 synLogin()
 
-library(doParallel)
 library(foreach)
 library(future)
+library(BiocParallel)
 
-cl = makeCluster((availableCores()-2)/2)
+# See dream documentation to customize parallel processing       http://bioconductor.org/packages/release/bioc/vignettes/variancePartition/inst/doc/dream.html#parallel-processing
+param = SnowParam((availableCores()-2)/2, "SOCK", progressbar=TRUE)
 
-registerDoParallel(cl)
+register(param)
 
 options(xtable.type="html")
 
@@ -252,7 +255,7 @@ hist(cr, main = 'Distribution of correlation between genes', xlab = 'Correlation
 ### Clustering residual data
 ```{r decompse.normalise.data2, fig.height=8, fig.width=8, results='asis'}
 # Find principal components of expression to plot
-PC <- prcomp(tmp, scale.=T, center = T)
+PC <- prcomp(RESIDUAL.GENE_EXPRESSION, scale.=T, center = T)
 
 # Plot first 4 PCs
 plotdata <- data.frame(SampleID=rownames(PC$rotation), 
@@ -268,11 +271,11 @@ p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~., scal
 p
 ```
 
-```{r decompse.normalise.data2.1, fig.height=8, fig.width=12, results='asis'}
+```{r decompose.normalise.data2.1, fig.height=8, fig.width=12, results='asis'}
 # Eucledian tree based analysis
 COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx.Tissue','Institution')])
 
-tree = hclust(as.dist(t(tmp)))
+tree = hclust(as.dist(t(RESIDUAL.GENE_EXPRESSION)))
 cols = WGCNA::labels2colors(COVARIATES.tmp);
 
 WGCNA::plotDendroAndColors(tree, 
@@ -343,6 +346,32 @@ FIT.CONTR = variancePartition::dream(exprObj = VOOM.GENE_EXPRESSION,
                                      data = COVARIATES,
                                      L = L)
 
+# Get background genes 
+backgroundGenes = data.frame(gene_id = rownames(NEW.COUNTS)) %>%
+  dplyr::mutate(id = gene_id) %>%
+  tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
+
+# Get gene lengths
+counts = 'syn21867938'
+ALL_USED_IDs = counts
+counts = downloadFile(counts) %>% data.frame()
+gene_lengths = counts[,c("Geneid", "Length")] %>% 
+  dplyr::rename(gene_id = Geneid)
+rm(counts)
+
+# Define biomart object
+mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+                dataset = "hsapiens_gene_ensembl")
+
+# Query biomart
+Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", 
+                                      "percentage_gene_gc_content", "gene_biotype", 
+                                      "chromosome_name"),
+                       filters = "ensembl_gene_id", 
+                       values = backgroundGenes$ensembl_gene_id,
+                       mart = mart)
+
 # Get differential expression
 DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
   topTable(FIT, coef=i, number = Inf) %>%
@@ -362,7 +391,7 @@ DE = DE %>%
   tidyr::separate(to.state, into = c('Dx2','Tissue'), sep = '_') %>%
   tidyr::unite(Comparison, Dx1, Dx2, sep = '_vs_') %>%
   left_join(Ensemble2HGNC) %>%
-  left_join(gene_lengths %>% rownameToFirstColumn('gene_id'))
+  left_join(gene_lengths)
 DE$Direction[DE$adj.P.Val > 0.05 | abs(DE$logFC) < log2(1.2)] = 'NONE'
 
 tmp = DE %>%
@@ -391,19 +420,19 @@ pl = list()
 pl[[1]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = log10(Length), y = logFC, color = Direction)) + geom_point() 
 pl[[1]] = pl[[1]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = log10(Length), y = logFC))
-pl[[1]] = pl[[1]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[1]] = pl[[1]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[1]] = pl[[1]] + theme(legend.position = 'top')
 
 pl[[2]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = percentage_gene_gc_content, y = logFC, color = Direction)) + geom_point()
 pl[[2]] = pl[[2]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = percentage_gene_gc_content, y = logFC))
-pl[[2]] = pl[[2]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[2]] = pl[[2]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[2]] = pl[[2]] + theme(legend.position = 'top')
 
 pl[[3]] = ggplot(DE %>% 
                     arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = AveExpr, y = logFC, color = Direction)) + geom_point()
 pl[[3]] = pl[[3]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = AveExpr, y = logFC))
-pl[[3]] = pl[[3]] + facet_grid(ref.Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[3]] = pl[[3]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
 pl[[3]] = pl[[3]] + theme(legend.position = 'top')
 
 multiplot(plotlist = pl, cols = 3)
