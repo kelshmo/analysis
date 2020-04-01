@@ -178,7 +178,6 @@ METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 # Match covariates to expression data
 indToRetain = intersect(METADATA$SampleID, colnames(counts))
 
-rownames(counts) <- counts$Geneid
 counts = counts[,indToRetain]
 
 rownames(METADATA) = METADATA$SampleID
@@ -196,9 +195,9 @@ METADATA = METADATA %>%
 
 ```{r gene.param}
 ## Get GC content from biomart
-backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
-  dplyr::mutate(id = gene_id) %>%
-  tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
+backgroundGenes = data.frame(transcript_id = rownames(counts)) %>%
+  dplyr::mutate(id = transcript_id) %>%
+  tidyr::separate(id, c('ensembl_transcript_id','position'), sep = '\\.')
 
 # Define biomart object
 mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
@@ -206,25 +205,25 @@ mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
-Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
-                       filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
+Ensemble2HGNC <- getBM(attributes = c("ensembl_transcript_id", "hgnc_trans_name", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
+                       filters = "ensembl_transcript_id", values = backgroundGenes$ensembl_transcript_id,
                        mart = mart)
 
 GENE.GC.CONT = Ensemble2HGNC %>%
   dplyr::left_join(backgroundGenes) %>% 
-  dplyr::select(gene_id, percentage_gene_gc_content, chromosome_name) %>%
+  dplyr::select(transcript_id, percentage_gene_gc_content, chromosome_name) %>%
   unique
-rownames(GENE.GC.CONT) = GENE.GC.CONT$gene_id
+rownames(GENE.GC.CONT) = GENE.GC.CONT$transcript_id
 ```
 
 ### Sex Check
 ```{r Reported_Gender_plots}
-counts$gene_id = rownames(counts) 
+counts$transcript_id = rownames(counts) 
 REPORTED.GENDER.COUNTS = GENE.GC.CONT %>% 
   left_join(counts) %>%
   dplyr::select(-one_of("percentage_gene_gc_content")) %>%
   filter(chromosome_name == "X" |chromosome_name == "Y") %>% 
-  tidyr::gather(key = item, value = value, -c(gene_id, chromosome_name)) %>%
+  tidyr::gather(key = item, value = value, -c(transcript_id, chromosome_name)) %>%
   dplyr::mutate(value = log(value)) %>%
   dplyr::rename(`counts(log)`= value) %>% 
   dplyr::rename(SampleID = item) %>%
@@ -234,9 +233,9 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
 ##XIST and UTY expression 
 #ENSG00000229807.11 and ENSG00000183878.15 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
+  filter(transcript_id == "ENSG00000229807.11" | transcript_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
-  tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
+  tidyr::spread(key = transcript_id, value = `counts(log)`) %>% 
   mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
   mutate(UTY = as.numeric(`ENSG00000183878.15`))
 
@@ -329,7 +328,7 @@ multiplot(plotlist = p, cols = 3)
 ### Filter genes
 Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Remove genes with percentage GC content
 ```{r cpmnormalisation}
-counts$gene_id = NULL
+counts$transcript_id = NULL
 
 genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(mtd, count){
   processed.counts = getGeneFilteredGeneExprMatrix(count[,mtd$SampleID],
@@ -340,12 +339,12 @@ genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(
 
 genesToAnalyze = unlist(genesToAnalyze) %>% 
   unique() %>%
-  intersect(GENE.GC.CONT$gene_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)])
+  intersect(GENE.GC.CONT$transcript_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)])
 
 #Subset union of all genes and convert subset to logcpm values 
 PROCESSED_COUNTS = getGeneFilteredGeneExprMatrix(counts[genesToAnalyze, ], MIN_GENE_CPM=0, MIN_SAMPLE_PERCENT_WITH_MIN_GENE_CPM=0)
 pct.pc = PROCESSED_COUNTS$filteredExprMatrix$genes %>%
-  dplyr::rename(gene_id = genes) %>%
+  dplyr::rename(transcript_id = genes) %>%
   left_join(backgroundGenes) %>%
   left_join(Ensemble2HGNC) %>%
   group_by(gene_biotype) %>%
@@ -394,8 +393,8 @@ p
 
 # Plot abberent distribution of logcpm counts
 tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
-  rownameToFirstColumn('ensembl_gene_id') %>%
-  tidyr::gather(SampleID, logCPM, -ensembl_gene_id) %>%
+  rownameToFirstColumn('ensembl_transcript_id') %>%
+  tidyr::gather(SampleID, logCPM, -ensembl_transcript_id) %>%
   left_join(COVARIATES %>%
               rownameToFirstColumn('SampleID') %>%
               tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
@@ -526,7 +525,7 @@ fitMixedEffectModel <- function(varsToFit, groupingVar, cnt, covars){
                                 }, error = function(e){
                                   BIC = NA
                                 })
-                              return(data.frame(ensembl_gene_id = rownames(cnt)[i],
+                              return(data.frame(ensembl_transcript_id = rownames(cnt)[i],
                                                 BIC = BIC))
                             }
   return(modelBIC)
@@ -556,7 +555,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, cnt, base
     
     # Find number of genes that are changed based on BIC
     nChange = allModelBIC %>%
-      tidyr::gather(ModelName, Value, -ensembl_gene_id) %>%
+      tidyr::gather(ModelName, Value, -ensembl_transcript_id) %>%
       dplyr::left_join(baseModelBIC) %>%
       dplyr::mutate(diff = baseModel - Value) %>%
       dplyr::group_by(ModelName) %>%
@@ -575,7 +574,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, cnt, base
       covarsToSelect = c()
     } else {
       baseModelBIC = allModelBIC %>%
-        dplyr::select(ensembl_gene_id, one_of(tmp$ModelName))
+        dplyr::select(ensembl_transcript_id, one_of(tmp$ModelName))
       colnames(baseModelBIC)[2] = 'baseModel'
       varsSelected = c(varsSelected, tmp$ModelName)
       covarsToSelect = setdiff(covarsToSelect, tmp$ModelName)
@@ -677,7 +676,7 @@ synSetAnnotations(COV_OBJ, annotations = all.annotations)
 
 # Store filtered counts
 PROCESSED_COUNTS$filteredExprMatrix$counts %>%
-  rownameToFirstColumn('ensembl_gene_id') %>%
+  rownameToFirstColumn('ensembl_transcript_id') %>%
   write.table(file = 'CMC_ACC_DLPFC_Counts.tsv', sep = '\t', row.names=F, quote=F)
 COUNT_OBJ = File('CMC_ACC_DLPFC_Counts.tsv', name = 'Counts (filtered raw)', parentId = CODE$properties$id)
 COUNT_OBJ = synStore(COUNT_OBJ, used = ALL_USED_IDs, activityName = activityName, 
