@@ -65,7 +65,7 @@ knitr::opts_chunk$set(
   cache = TRUE)
 ```
 
-```{r synapse.parameters, include=FALSE, cache=TRUE}
+```{r synapse.parameters, include=FALSE, cache = FALSE}
 parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN normalisation (ACC and STG)';
@@ -90,7 +90,7 @@ downloadFile_version <- function(id , version){
 METADATA_QC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ID
 metadata = downloadFile_version(METADATA_QC_ID, version = 18) %>%
-  dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
+  dplyr::select(`Individual_ID`, Institution, Cohort, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
                                       'rnaSeq_isolation:RNA_Isolation_Batch',
@@ -103,13 +103,13 @@ metadata = downloadFile_version(METADATA_QC_ID, version = 18) %>%
                                       'rnaSeq_report:rRNA_Rate',
                                       'rnaSeq_report:Total_Reads', 'rnaSeq_report:Percent_Aligned',
                                       'rnaSeq_report:Transcripts_Detected')) %>% 
-  dplyr::filter(Institution %in% c("NIMH-HBCC")) %>% 
+  dplyr::filter(Cohort %in% c("NIMH-HBCC-4")) %>% 
   dplyr::filter(`rnaSeq_dissection:Brain_Region` %in% c("ACC","STG"))
 
 ## Download reprocessed counts (ACC and STG)
 counts = 'syn21867866'
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = counts
-COUNT = downloadFile(counts) %>% data.frame()
+COUNT = downloadFile(counts)
 COUNT$Chr <- NULL
 COUNT$Start <- NULL
 COUNT$End <- NULL
@@ -153,15 +153,11 @@ METADATA = metadata %>%
                 IntergenicRate = `rnaSeq_report:Intergenic_Rate`, GenesDetected = `rnaSeq_report:Genes_Detected`,
                 ExpProfEfficiency = `rnaSeq_report:Expression_Profiling_Efficiency`, rRNARate = `rnaSeq_report:rRNA_Rate`,
                 TotalReads = `rnaSeq_report:Total_Reads`, AlignmentRate = `rnaSeq_report:Percent_Aligned`, TranscriptsDetected = `rnaSeq_report:Transcripts_Detected`) %>%
-  dplyr::select(SampleID, Individual_ID, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
+  dplyr::select(SampleID, Individual_ID, Tissue, Institution, Reported_Gender,Sex, Ethnicity, ageOfDeath, PMI, Dx, 
                 RIN, ReportExclude, GenotypeExclude, EV.1, EV.2, EV.3, EV.4, EV.5,
                 LibraryBatch, FlowcellBatch, IsolationBatch, MappedReads, TotalReads, GenesDetected, AlignmentRate,
                 IntragenicRate, IntergenicRate, IntronicRate, ExpProfEfficiency, rRNARate, TranscriptsDetected) %>%
   dplyr::mutate(Dx = forcats::fct_recode(Dx, Other = "MDD", Other = "BP", Control = "Control", SCZ = "SCZ"))
-
-# Limit HBCC ACC and STG Counts
-rownames(COUNT) = COUNT$Geneid
-COUNT <- COUNT[,colnames(COUNT) %in% METADATA$SampleID]
 
 ind = METADATA$SampleID[which(METADATA$ReportExclude == 1 | METADATA$GenotypeExclude)]
 writeLines(paste('Following',length(ind),'samples are marked exclude'))
