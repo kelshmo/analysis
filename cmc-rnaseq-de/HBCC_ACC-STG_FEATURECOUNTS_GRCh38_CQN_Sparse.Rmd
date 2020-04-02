@@ -195,6 +195,7 @@ METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 indToRetain = intersect(METADATA$SampleID, colnames(COUNT))
 removedIDs = setdiff(colnames(COUNT), METADATA$SampleID)
 
+rownames(COUNT) <- COUNT$Geneid
 COUNT = COUNT[,indToRetain]
 
 rownames(METADATA) = METADATA$SampleID
