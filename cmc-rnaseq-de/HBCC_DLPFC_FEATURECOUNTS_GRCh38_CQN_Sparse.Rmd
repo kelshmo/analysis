@@ -89,7 +89,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_DLPFC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_DLPFC_ID
-metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 16) %>%
+metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 18) %>%
   dplyr::select(`Individual_ID`, Institution, Cohort, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
@@ -416,10 +416,12 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
   dplyr::mutate(label = SampleID) %>% 
-  dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
+  dplyr::mutate(label = ifelse((label %in% outliers), label, NA)) %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC") %>% 
+  dplyr::mutate(Tissue = "DLPFC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
+p <- p + geom_point(aes(shape= Tissue, color = Institution, size=ageOfDeath))
 p <- p + theme_bw() %+replace% theme(legend.position="right")
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
