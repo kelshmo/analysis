@@ -418,11 +418,12 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
   dplyr::mutate(label = SampleID) %>% 
-  dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
+  dplyr::mutate(label = ifelse((label %in% outliers), label, NA)) %>% 
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
-p <- p + theme_bw() %+replace% theme(legend.position="right")
+p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
+p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
 # Plot abberent distribution of logcpm counts
@@ -484,14 +485,16 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>% 
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx.Tissue, size=ageOfDeath))
+p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA MSSM/Penn/Pitt Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
-         size = guide_legend(nrow = 2))
+         size = guide_legend(nrow = 2)) +
+  facet_grid(Tissue~.)
 p
 # p <- p + geom_text(aes(label= SampleID), size=4, hjust=0)
 ```
