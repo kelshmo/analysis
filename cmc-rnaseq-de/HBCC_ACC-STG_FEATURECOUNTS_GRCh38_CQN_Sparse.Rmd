@@ -89,6 +89,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ID
+
 metadata = downloadFile_version(METADATA_QC_ID, version = 18) %>%
   dplyr::select(`Individual_ID`, Institution, Cohort, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
@@ -131,7 +132,8 @@ GENOTYPE_ID = 'syn16816490'
 ALL_USED_IDs = c(ALL_USED_IDs, GENOTYPE_ID)
 GENOTYPE = downloadFile(GENOTYPE_ID) %>% 
   dplyr::select(Individual_ID, `SNP_report:Genotyping_Sample_ID`, `SNP_report:Exclude?`) %>% 
-  dplyr::inner_join(ANCESTRY)
+  dplyr::inner_join(ANCESTRY) %>% 
+  dplyr::filter(is.na(`SNP_report:Exclude?`)) #Remove excluded samples here because there are duplicate individuals
 ```
 
 ### Data preprocessing
@@ -417,6 +419,7 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
                                            which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
+    tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
   dplyr::mutate(label = SampleID) %>% 
   dplyr::mutate(label = ifelse((label %in% outliers), label, NA)) %>% 
   tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>% 
@@ -427,17 +430,20 @@ p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
 p <- p + theme_bw() + theme(legend.position="right") + facet_grid(Tissue~.)
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
+
 # Plot abberent distribution of logcpm counts
 tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
   tidyr::gather(SampleID, logCPM, -ensembl_gene_id) %>%
   left_join(COVARIATES %>%
-              rownameToFirstColumn('SampleID'))
-# p = ggplot(tmp1 %>%
-#              dplyr::filter(SampleID %in% indToRemove),
-#            aes(x = logCPM, color = SampleID)) + geom_density() 
-# p = p + theme_bw() %+replace% theme(legend.position = 'none') + facet_grid(Dx~., scale = 'free')
-# p
+              rownameToFirstColumn('SampleID') %>%
+              tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
+
+p = ggplot(tmp1 %>%
+             dplyr::filter(SampleID %in% outliers),
+           aes(x = logCPM, color = SampleID)) + geom_density() 
+p = p + theme(legend.position = 'top') + facet_grid(Dx+.~Tissue, scale = 'free')
+p
 
 indToRetain = setdiff(colnames(PROCESSED_COUNTS$filteredExprMatrix$counts), outliers)
 PROCESSED_COUNTS$filteredExprMatrix$counts = PROCESSED_COUNTS$filteredExprMatrix$counts[,indToRetain]

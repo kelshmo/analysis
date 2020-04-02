@@ -51,7 +51,6 @@ library(future)
 
 cl = makeCluster((availableCores()-2)/2)
 
-
 registerDoParallel(cl)
 
 options(xtable.type="html")
@@ -73,7 +72,7 @@ activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN norm
 thisFileName <- 'HBCC_ACC-Nirmala_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='add-dream')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='master')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
@@ -453,7 +452,7 @@ COVARIATES = COVARIATES[indToRetain,]
 tmp = COVARIATES %>%
   group_by(Dx) %>%
   dplyr::summarise(count = n())
-
+  
 NEW.COUNTS = PROCESSED_COUNTS$filteredExprMatrix$counts
 ```
 Processing `r dim(PROCESSED_COUNTS$filteredExprMatrix)[1]` genes in `r dim(PROCESSED_COUNTS$filteredExprMatrix)[2]` samples from `r length(unique(COVARIATES$Individual_ID))` unique individuals
@@ -520,6 +519,7 @@ WGCNA::plotDendroAndColors(tree,
                            main = "Sample dendrogram",
                            groupLabels = colnames(COVARIATES.tmp))
 ```
+
 
 ```{r temp, include = F}
 dev.off()
@@ -698,7 +698,6 @@ vars.selected = selectCovarsToAdjust(phase3.covars, adjust.covars,
 
 adjust.covars = c(adjust.covars, vars.selected)
 ```
-
 #### Variables included in the model 
 Covariates were added as fixed effects iteratively in three phases if model improvement by BIC criteria was observed in the majority of genes. Clinical, ancestry and sample-specific technical variables were tested for model improvement first. Covariates related to batch effects were next tested for model improvement and finally, RNASeq alignment-specific covariates.
 
