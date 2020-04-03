@@ -88,7 +88,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_ACC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_ACC_ID
-metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 18) %>%
+metadata = downloadFile_version(METADATA_QC_ACC_ID, version = 19) %>%
   dplyr::select(`Individual_ID`, Institution, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('Cohort',
                                       'rnaSeq_isolation:RIN',
@@ -426,10 +426,12 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
   dplyr::mutate(label = SampleID) %>% 
-  dplyr::mutate(label = ifelse((label %in% outliers), label, NA))
+  dplyr::mutate(label = ifelse((label %in% outliers), label, NA)) %>% 
+  dplyr::mutate(Tissue = "DLPFC") %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
+p <- p + geom_point(aes(shape= Tissue, color = Institution, size = ageOfDeath))
 p <- p + theme_bw() %+replace% theme(legend.position="right")
 p <- p + geom_text(aes(label= label), size=4, hjust=0)
 p
@@ -492,10 +494,12 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC1=PC$rotation[,1], 
                        PC2=PC$rotation[,2])
 
-plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID'))
+plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
+  dplyr::mutate(Tissue = "DLPFC") %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
-p <- p + geom_point(aes(shape=Dx, size=ageOfDeath))
+p <- p + geom_point(aes(shape= Tissue, color = Institution, size = ageOfDeath))
 p <- p + theme_bw() %+replace% theme(legend.position="top", plot.title = element_text(hjust=0.5, size = 15)) + ggtitle ("PCA HBCC Cohort") + 
   guides(colour = guide_legend(nrow = 2),
          shape = guide_legend(nrow = 2),
