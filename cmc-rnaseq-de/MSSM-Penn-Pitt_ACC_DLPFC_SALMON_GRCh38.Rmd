@@ -65,7 +65,7 @@ activityDescription = 'Covariate analysis of GRCh38 salmon counts (ACC and DLPFC
 thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_SALMON_GRCh38.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='add-dream')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='compute-salmon')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
@@ -99,7 +99,7 @@ GENOTYPE = downloadFile(GENOTYPE_ID) %>%
 #Get Metadata
 metadata = 'syn16816488' 
 ALL_USED_IDs[length(ALL_USED_IDs)+1] = metadata
-metadata = downloadFile_version(metadata, version = 18)  %>% 
+metadata = downloadFile_version(metadata, version = 19)  %>% 
   dplyr::select(Individual_ID, Institution, Reported_Gender, Sex, 
                 Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx,
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
@@ -231,18 +231,19 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
-#ENSG00000229807.11 and ENSG00000183878.15 
+#ENST00000416330.2 and ENST00000329134.9 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(transcript_id == "ENSG00000229807.11" | transcript_id == "ENSG00000183878.15") %>% 
+  filter(transcript_id == "ENST00000416330.2" | transcript_id == "ENST00000329134.9") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
   tidyr::spread(key = transcript_id, value = `counts(log)`) %>% 
-  mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
-  mutate(UTY = as.numeric(`ENSG00000183878.15`))
+  mutate(XIST = as.numeric(`ENST00000416330.2`)) %>% 
+  mutate(UTY = as.numeric(`ENST00000329134.9`))
 
 p = ggplot(FILT, aes (x= XIST, y = UTY)) 
 p = p + geom_point(aes(color=`Reported Gender`)) 
 p
 ```
+
 ### Covariates clustering
 Determine relationship between covariates. 
 ```{r covariates.clustering}
