@@ -431,7 +431,10 @@ Salmon utilizes sample-specific bias models for transcriptome-wide abundance est
 ### Co-expression distribution
 Coexpression of genes 
 ```{r coexp1, cache=FALSE, fig.height=5, fig.width=5}
-cr = cor(t(NEW.COUNTS))
+# Reduce computational load and compute correlation on half of genes
+random_sampling <- sample(dim(NEW.COUNTS)[1], size = dim(NEW.COUNTS)[1]/2 , replace = F)
+tmp <- NEW.COUNTS[random_sampling,]
+cr = cor(t(tmp))
 hist(cr, main = 'Distribution of correlation between genes', xlab = 'Correlation')
 ```
 
