@@ -57,7 +57,7 @@ knitr::opts_chunk$set(
   cache = TRUE)
 ```
 
-```{r synapse.parameters, include=FALSE, cache=TRUE}
+```{r synapse.parameters, include=FALSE, cache=FALSE}
 parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 salmon counts (ACC and DLPFC)';
@@ -81,7 +81,8 @@ downloadFile_version <- function(id , version){
 counts = 'syn21869686'
 ALL_USED_IDs = counts
 counts = readRDS(synGet(counts)$path)
-counts = counts$counts
+counts = counts$counts %>% 
+  as.data.frame()
 
 # Get ancestry vector calculated using gemtools
 ANCESTRY_ID = 'syn2511399'
