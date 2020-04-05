@@ -329,7 +329,7 @@ multiplot(plotlist = p, cols = 3)
 ```
 ### Filter genes
 Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Remove genes with percentage GC content
-```{r cpmnormalisation}
+```{r cpmnormalisation, cache.lazy = FALSE}
 counts$transcript_id = NULL
 
 genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(mtd, count){
