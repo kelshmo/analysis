@@ -419,10 +419,9 @@ outliers <- c(outliers, as.character(plotdata$SampleID[c(which(plotdata$PC2 < me
                                            which(plotdata$PC2 > mean(plotdata$PC2) + 4*sd(plotdata$PC2))), drop = T] ))
   
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, "SampleID")) %>%
-    tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>%
   dplyr::mutate(label = SampleID) %>% 
   dplyr::mutate(label = ifelse((label %in% outliers), label, NA)) %>% 
-  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>% 
   dplyr::mutate(Institution = "NIMH-HBCC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
