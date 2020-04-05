@@ -12,7 +12,7 @@ library(knit2synapse)
 synLogin()
 
 knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/Differential-Expression.Rmd",
-                                 parentId ="syn21824667",
+                                 parentId ="syn21887806",
                                  folderName = "Differential Expression - Dx.Tissue")
 ```
 
@@ -59,14 +59,14 @@ knitr::opts_chunk$set(
 ```
 
 ```{r synapse.parameters, include=FALSE, cache=TRUE}
-parentId = 'syn21824667';
+parentId = 'syn21887806';
 activityName = 'Differential Expression';
 activityDescription = 'Differential Expression - Dx.Tissue';
 
 thisFileName <- 'Differential-Expression.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='add-dream')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='differential-expression')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 
@@ -78,20 +78,20 @@ downloadFile <- function(id){
 }
 
 # Download CQN counts
-CQN_ID = "syn21825509"
+CQN_ID = "syn21888972"
 ALL_USED_IDs = c(CQN_ID)
 CQN.GENE_EXPRESSION = downloadFile(CQN_ID) %>% 
   tibble::column_to_rownames(var = "ensembl_gene_id") %>% 
   data.matrix()
   
 # Download filtered counts
-COUNTS_ID = "syn21825508"
+COUNTS_ID = "syn21888969"
 ALL_USED_IDs = c(ALL_USED_IDs, COUNTS_ID)
 NEW.COUNTS = downloadFile(COUNTS_ID) %>% 
   tibble::column_to_rownames(var = "ensembl_gene_id")
   
 # Get covariates
-COVAR_ID = "syn21825507"
+COVAR_ID = "syn21888968"
 ALL_USED_IDs = c(ALL_USED_IDs, COVAR_ID)
 COVARIATES = downloadFile(COVAR_ID) %>% 
   tibble::column_to_rownames(var = "SampleID")
@@ -108,7 +108,7 @@ COVARIATES[,ContCovariates] = lapply(COVARIATES[,ContCovariates], function(x){
 })
 
 # Set covariates to adjust for from model selection
-adjust.covars <- c("Dx.Tissue", "RIN", "IntronicRate")
+adjust.covars <- c("Dx.Tissue", "RIN", "IntragenicRate")
 ```
 
 ### Normalisation - Dx.Tissue
@@ -204,16 +204,16 @@ hasReps = rownameToFirstColumn(COVARIATES, "SampleID") %>%
   dplyr::select(Individual_ID) %>% 
   table
 
-df_dlpfc = rownameToFirstColumn(COVARIATES, "SampleID") %>% 
+df_stg = rownameToFirstColumn(COVARIATES, "SampleID") %>% 
   filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
-  filter(grepl("DLPFC", Dx.Tissue)) %>% 
+  filter(grepl("STG", Dx.Tissue)) %>% 
   dplyr::select(SampleID, Individual_ID, Dx.Tissue)
 df_acc = rownameToFirstColumn(COVARIATES, "SampleID") %>%
   filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
   filter(grepl("ACC", Dx.Tissue)) %>% 
   dplyr::select(SampleID, Individual_ID, Dx.Tissue)
 
-df_merge = merge(df_dlpfc, df_acc, by="Individual_ID")
+df_merge = merge(df_stg, df_acc, by="Individual_ID")
 
 res_std <- rownameToFirstColumn(RESIDUAL.GENE_EXPRESSION, "ensembl_gene_id")
 
@@ -225,7 +225,7 @@ corRes = sapply(res_std$ensembl_gene_id, function(ensGene){
   cor(t(x)[,1], t(y)[,1], use="pairwise.complete.obs")
 })
 
-hist(corRes, xlab="Correlation", main="Correlation between ACC and DLPFC sample from the sample individual for each gene from ")
+hist(corRes, xlab="Correlation", main="Correlation between ACC and STG sample from the sample individual for each gene")
 
 pca = prcomp(t(VOOM.GENE_EXPRESSION$E))
 
@@ -316,15 +316,15 @@ L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION,
 L4 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueOther_DLPFC", "Dx.TissueControl_DLPFC"))
+                                   coefficient = c("Dx.TissueOther_STG", "Dx.TissueControl_STG"))
 L5 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueControl_DLPFC"))
+                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueControl_STG"))
 L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_DLPFC", "Dx.TissueOther_DLPFC"))
+                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueOther_STG"))
 
 
 L = cbind(L1, L2, L3, L4, L5, L6)
@@ -352,7 +352,7 @@ backgroundGenes = data.frame(gene_id = rownames(NEW.COUNTS)) %>%
   tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
 
 # Get gene lengths
-counts = 'syn21867938'
+counts = 'syn21867866'
 ALL_USED_IDs = counts
 counts = downloadFile(counts) %>% data.frame()
 gene_lengths = counts[,c("Geneid", "Length")] %>% 
@@ -446,7 +446,7 @@ all.annotations = list(
   dataSubtype = 'processed',
   assay	 = 'rnaSeq',
   
-  tissue	= 'dorsolateral prefrontal cortex, anterior cingulate cortex', 
+  tissue	= 'superior temporal gyrus, anterior cingulate cortex', 
   study = 'CMC', 
 
   species = 'Human',
@@ -466,8 +466,8 @@ CODE <- synStore(CODE)
 # Store residual gene expression for network analysis
 RESIDUAL.GENE_EXPRESSION %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_DLPFC_Dx.Tissue_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
-nEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_netResidualExpression.tsv', 
+  write.table(file = 'CMC_ACC_STG_Dx.Tissue_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
+nEXP_OBJ = File('CMC_ACC_STG_Dx.Tissue_netResidualExpression.tsv', 
                 name = 'Dx.Tissue Normalised, covariates removed residual expression (for network analysis)', 
                 parentId = CODE$properties$id)
 nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
@@ -475,8 +475,8 @@ nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName,
 synSetAnnotations(nEXP_OBJ, annotations = all.annotations)
 
 # Store differential expression results
-write.table(DE, file = 'CMC_ACC_DLPFC_Dx.Tissue_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
-DEXP_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_DiffExpression.tsv', 
+write.table(DE, file = 'CMC_ACC_STG_Dx.Tissue_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
+DEXP_OBJ = File('CMC_ACC_STG_Dx.Tissue_DiffExpression.tsv', 
                 name = 'Differential Expression Results (Dx.Tissue)', 
                 parentId = CODE$properties$id)
 DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
@@ -484,8 +484,8 @@ DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName,
 synSetAnnotations(DEXP_OBJ, annotations = all.annotations)
 
 # Store adjusted fit linear mixed model object as RDS - Dx.Tissue
-saveRDS(ADJUSTED.FIT, file = 'CMC_ACC_DLPFC_Dx.Tissue_dream-output.rds')
-ADJ_OBJ = File('CMC_ACC_DLPFC_Dx.Tissue_dream-output.rds',
+saveRDS(ADJUSTED.FIT, file = 'CMC_ACC_STG_Dx.Tissue_dream-output.rds')
+ADJ_OBJ = File('CMC_ACC_STG_Dx.Tissue_dream-output.rds',
                name = 'Dream Output object - Dx.Tissue', 
                parentId = CODE$properties$id)
 ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
