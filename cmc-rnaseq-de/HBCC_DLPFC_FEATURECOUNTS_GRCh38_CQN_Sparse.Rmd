@@ -279,7 +279,7 @@ Determine relationship between covariates.
 ```{r covariates.clustering}
 FactorCovariates <- c('Individual_ID', "Reported_Gender", "LibraryBatch", "Dx", "FlowcellBatch")
 ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
-                    "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads", 
+                    "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads", "AlignmentRate",
                     "EV.1", "EV.2", "EV.3", "EV.4", "EV.5")
 
 # Find inter relation between factor covariates

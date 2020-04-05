@@ -73,7 +73,7 @@ activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN norm
 thisFileName <- 'HBCC_ACC-STG_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='add-dream')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='master')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
@@ -285,7 +285,7 @@ Determine relationship between covariates.
 ```{r covariates.clustering}
 FactorCovariates <- c('Individual_ID', "Reported_Gender", "IsolationBatch", "Dx.Tissue")
 ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
-                    "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads", 
+                    "GenesDetected", "ExpProfEfficiency", "rRNARate", "TotalReads", "AlignmentRate",
                     "EV.1", "EV.2", "EV.3", "EV.4", "EV.5")
 
 # Find inter relation between factor covariates
