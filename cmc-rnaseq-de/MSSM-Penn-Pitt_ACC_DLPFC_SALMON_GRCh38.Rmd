@@ -1,6 +1,6 @@
 ---
 title: "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - SALMON - GRCh38 - Model Selection"
-author: "Kelsey Montgomery, Gabriel Hoffman, Thanneer Perumal"
+author: "Kelsey Montgomery, Gabriel Hoffman, Thaneer Perumal"
 date: "`r date()`"
 output: html_document
 ---
