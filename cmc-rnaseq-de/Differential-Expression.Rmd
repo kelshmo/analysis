@@ -97,7 +97,7 @@ COVARIATES = downloadFile(COVAR_ID) %>%
   tibble::column_to_rownames(var = "SampleID")
 
 # Set variable class
-FactorCovariates <- c("Individual_ID", "Reported_Gender", "Dx.Tissue")
+FactorCovariates <- c("Individual_ID", "Reported_Gender", "Dx.Tissue", "IsolationBatch")
 COVARIATES[,FactorCovariates] = lapply(COVARIATES[,FactorCovariates], factor)
 
 ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
@@ -232,7 +232,8 @@ pca = prcomp(t(VOOM.GENE_EXPRESSION$E))
 df_pca = merge(pca$x, as.data.frame(rownameToFirstColumn(COVARIATES, "SampleID")), 
                by.x="row.names", 
                by.y="SampleID" ) %>% 
-  tidyr::separate(Dx.Tissue, into = c("Dx", "Tissue"), sep = "_")
+  tidyr::separate(Dx.Tissue, into = c("Dx", "Tissue"), sep = "_") %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC")
 
 ggplot(df_pca, aes(PC1, PC2, color=Tissue, shape=Institution)) + geom_point() + theme_bw(17) + theme(aspect.ratio=1)
 ```
@@ -263,7 +264,8 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC2=PC$rotation[,2])
 
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
-  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_')
+  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>% 
+  dplyr::mutate(Institution = "NIMH-HBCC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
 p <- p + geom_point(aes(color=Institution, shape=Tissue, size=ageOfDeath))
@@ -273,7 +275,7 @@ p
 
 ```{r decompose.normalise.data2.1, fig.height=8, fig.width=12, results='asis'}
 # Eucledian tree based analysis
-COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx.Tissue','Institution')])
+COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx.Tissue'), drop = F])
 
 tree = hclust(as.dist(t(RESIDUAL.GENE_EXPRESSION)))
 cols = WGCNA::labels2colors(COVARIATES.tmp);
@@ -283,7 +285,7 @@ WGCNA::plotDendroAndColors(tree,
                            dendroLabels = FALSE, 
                            abHeight = 0.80, 
                            main = "Sample dendrogram",
-                           groupLabels = colnames(COVARIATES.tmp[,c('Dx.Tissue','Institution')]))
+                           groupLabels = colnames(COVARIATES.tmp))
 ```
 
 ```{r temp1, include=F}
