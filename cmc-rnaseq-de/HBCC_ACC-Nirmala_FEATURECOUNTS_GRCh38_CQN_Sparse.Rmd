@@ -477,6 +477,11 @@ CQN.GENE_EXPRESSION = cqn(NEW.COUNTS,
 CQN.GENE_EXPRESSION$E = CQN.GENE_EXPRESSION$y + CQN.GENE_EXPRESSION$offset
 ```
 
+Remove 0 variance gene: ENSG00000210082.2
+```{r zero_var}
+CQN.GENE_EXPRESSION$E <- subset(CQN.GENE_EXPRESSION$E, rownames(CQN.GENE_EXPRESSION$E) != "ENSG00000210082.2")
+```
+
 ### Co-expression distribution
 Coexpression of genes 
 ```{r coexp1, cache=FALSE, fig.height=5, fig.width=5}
