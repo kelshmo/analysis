@@ -1,5 +1,5 @@
 ---
-title: "Differential Expression"
+title: "Differential Expression - Dx"
 author: "Kelsey Montgomery, Gabriel Hoffman, Thaneer Perumal"
 date: "`r date()`"
 output: html_document
@@ -11,7 +11,7 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/Differential-Expression.Rmd",
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/Differential-Expression_Dx.Rmd",
                                  parentId ="syn21859863",
                                  folderName = "Differential Expression - Dx")
 ```
