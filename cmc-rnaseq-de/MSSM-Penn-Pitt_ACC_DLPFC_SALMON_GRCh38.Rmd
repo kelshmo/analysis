@@ -11,9 +11,9 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38.Rmd",
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_SALMON_GRCh38.Rmd",
                                  parentId ="syn21435176",
-                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38")
+                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - SALMON - GRCh38")
 ```
 
 ```{r libs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
@@ -63,7 +63,7 @@ parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 salmon counts (ACC and DLPFC)';
 
-thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38.Rmd'
+thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_SALMON_GRCh38.Rmd'
 
 # Github link
 thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='compute-salmon')
