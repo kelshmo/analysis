@@ -1,6 +1,6 @@
 ---
 title: "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - SALMON - GRCh38 - Model Selection"
-author: "Kelsey Montgomery, Gabriel Hoffman, Thaneer Perumal"
+author: "Kelsey Montgomery, Gabriel Hoffman, Thanneer Perumal"
 date: "`r date()`"
 output: html_document
 ---
@@ -11,9 +11,9 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_SALMON_GRCh38.Rmd",
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38.Rmd",
                                  parentId ="syn21435176",
-                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - SALMON - GRCh38")
+                                 folderName = "MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38")
 ```
 
 ```{r libs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
@@ -29,6 +29,7 @@ library(ggplot2)
 library(limma)
 library(psych)
 library(edgeR)
+library(cqn)
 library(lme4)
 library(biomaRt)
 library(variancePartition)
@@ -57,12 +58,12 @@ knitr::opts_chunk$set(
   cache = TRUE)
 ```
 
-```{r synapse.parameters, include=FALSE, cache=FALSE}
+```{r synapse.parameters, include=FALSE, cache=TRUE}
 parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 salmon counts (ACC and DLPFC)';
 
-thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_SALMON_GRCh38.Rmd'
+thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38.Rmd'
 
 # Github link
 thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='compute-salmon')
@@ -78,7 +79,7 @@ downloadFile_version <- function(id , version){
   fread(synGet(id, version = version)$path, data.table = F)
 }
 # Download reprocessed counts
-counts = 'syn21869686'
+counts = 'syn21899614'
 ALL_USED_IDs = counts
 counts = readRDS(synGet(counts)$path)
 counts = counts$counts %>% 
@@ -179,6 +180,7 @@ METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 # Match covariates to expression data
 indToRetain = intersect(METADATA$SampleID, colnames(counts))
 
+rownames(counts) <- counts$Geneid
 counts = counts[,indToRetain]
 
 rownames(METADATA) = METADATA$SampleID
@@ -196,9 +198,9 @@ METADATA = METADATA %>%
 
 ```{r gene.param}
 ## Get GC content from biomart
-backgroundGenes = data.frame(transcript_id = rownames(counts)) %>%
-  dplyr::mutate(id = transcript_id) %>%
-  tidyr::separate(id, c('ensembl_transcript_id','position'), sep = '\\.')
+backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
+  dplyr::mutate(id = gene_id) %>%
+  tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
 
 # Define biomart object
 mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
@@ -206,25 +208,25 @@ mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
-Ensemble2HGNC <- getBM(attributes = c("ensembl_transcript_id", "hgnc_trans_name", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
-                       filters = "ensembl_transcript_id", values = backgroundGenes$ensembl_transcript_id,
+Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
+                       filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
                        mart = mart)
 
 GENE.GC.CONT = Ensemble2HGNC %>%
   dplyr::left_join(backgroundGenes) %>% 
-  dplyr::select(transcript_id, percentage_gene_gc_content, chromosome_name) %>%
+  dplyr::select(gene_id, percentage_gene_gc_content, chromosome_name) %>%
   unique
-rownames(GENE.GC.CONT) = GENE.GC.CONT$transcript_id
+rownames(GENE.GC.CONT) = GENE.GC.CONT$gene_id
 ```
 
 ### Sex Check
 ```{r Reported_Gender_plots}
-counts$transcript_id = rownames(counts) 
+counts$gene_id = rownames(counts) 
 REPORTED.GENDER.COUNTS = GENE.GC.CONT %>% 
   left_join(counts) %>%
   dplyr::select(-one_of("percentage_gene_gc_content")) %>%
   filter(chromosome_name == "X" |chromosome_name == "Y") %>% 
-  tidyr::gather(key = item, value = value, -c(transcript_id, chromosome_name)) %>%
+  tidyr::gather(key = item, value = value, -c(gene_id, chromosome_name)) %>%
   dplyr::mutate(value = log(value)) %>%
   dplyr::rename(`counts(log)`= value) %>% 
   dplyr::rename(SampleID = item) %>%
@@ -232,19 +234,18 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
-#ENST00000416330.2 and ENST00000329134.9 
+#ENSG00000229807.11 and ENSG00000183878.15 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(transcript_id == "ENST00000416330.2" | transcript_id == "ENST00000329134.9") %>% 
+  filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
-  tidyr::spread(key = transcript_id, value = `counts(log)`) %>% 
-  mutate(XIST = as.numeric(`ENST00000416330.2`)) %>% 
-  mutate(UTY = as.numeric(`ENST00000329134.9`))
+  tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
+  mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
+  mutate(UTY = as.numeric(`ENSG00000183878.15`))
 
 p = ggplot(FILT, aes (x= XIST, y = UTY)) 
 p = p + geom_point(aes(color=`Reported Gender`)) 
 p
 ```
-
 ### Covariates clustering
 Determine relationship between covariates. 
 ```{r covariates.clustering}
@@ -328,9 +329,9 @@ multiplot(plotlist = p, cols = 3)
 # vcd::mosaic(~ Gender + Dx.Tissue, data = COVARIATES)
 ```
 ### Filter genes
-Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Remove genes with percentage GC content
-```{r cpmnormalisation, cache.lazy = FALSE}
-counts$transcript_id = NULL
+Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Also remove genes with missing gene length and percentage GC content
+```{r cpmnormalisation}
+counts$gene_id = NULL
 
 genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(mtd, count){
   processed.counts = getGeneFilteredGeneExprMatrix(count[,mtd$SampleID],
@@ -341,12 +342,13 @@ genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(
 
 genesToAnalyze = unlist(genesToAnalyze) %>% 
   unique() %>%
-  intersect(GENE.GC.CONT$transcript_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)])
+  intersect(GENE.GC.CONT$gene_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)]) %>%
+  intersect(gene_lengths$gene_id[!is.na(gene_lengths$Length)])
 
 #Subset union of all genes and convert subset to logcpm values 
 PROCESSED_COUNTS = getGeneFilteredGeneExprMatrix(counts[genesToAnalyze, ], MIN_GENE_CPM=0, MIN_SAMPLE_PERCENT_WITH_MIN_GENE_CPM=0)
 pct.pc = PROCESSED_COUNTS$filteredExprMatrix$genes %>%
-  dplyr::rename(transcript_id = genes) %>%
+  dplyr::rename(gene_id = genes) %>%
   left_join(backgroundGenes) %>%
   left_join(Ensemble2HGNC) %>%
   group_by(gene_biotype) %>%
@@ -395,8 +397,8 @@ p
 
 # Plot abberent distribution of logcpm counts
 tmp1 = voom(PROCESSED_COUNTS$filteredExprMatrix$counts)$E %>%
-  rownameToFirstColumn('ensembl_transcript_id') %>%
-  tidyr::gather(SampleID, logCPM, -ensembl_transcript_id) %>%
+  rownameToFirstColumn('ensembl_gene_id') %>%
+  tidyr::gather(SampleID, logCPM, -ensembl_gene_id) %>%
   left_join(COVARIATES %>%
               rownameToFirstColumn('SampleID') %>%
               tidyr::separate(Dx.Tissue, c('Dx', 'Tissue'), sep = '_'))
@@ -473,9 +475,24 @@ WGCNA::plotDendroAndColors(tree,
                            main = "Sample dendrogram",
                            groupLabels = colnames(COVARIATES.tmp))
 ```
+
 ```{r temp, include = F}
 dev.off()
 gc()
+```
+
+### Distribution of samples (log cpm)
+```{r lcpm.dist, cache=FALSE}
+# Plot abberent distribution of logcpm counts
+tmp1 = (CQN.GENE_EXPRESSION$E) %>%
+  rownameToFirstColumn('gene_id') %>%
+  tidyr::gather(SampleID, logCPM, -gene_id) %>%
+  left_join(COVARIATES %>%
+              rownameToFirstColumn('SampleID'))
+
+p = ggplot(tmp1, aes(x = logCPM, color = SampleID)) + geom_density() 
+p = p + theme_bw() %+replace% theme(legend.position = 'NONE') + facet_grid(.~Dx.Tissue, scale = 'free')
+p
 ```
 
 ### Significant Covariates
@@ -493,6 +510,7 @@ Significant covariates to adjust at FDR 0.1 are `r preAdjustedSigCovars$signific
 ```{r preAdjustedSigCovars.NULL, fig.width=20, fig.height=12}
 preAdjustedSigCovars[["PC_res"]][[2]]$plotData
 ```
+
 
 ### Model Identification
 ```{r fxn}
@@ -616,6 +634,7 @@ baseModelBIC = fitMixedEffectModel(adjust.covars,
                                    NEW.COUNTS, 
                                    COVARIATES) %>%
   dplyr::rename(baseModel = BIC)
+message("passing...")
 # Iteratively identify covariates in phase I
 phase2.covars = c('LibraryBatch', 'FlowcellBatch')
 vars.selected = selectCovarsToAdjust(phase2.covars, adjust.covars, 
