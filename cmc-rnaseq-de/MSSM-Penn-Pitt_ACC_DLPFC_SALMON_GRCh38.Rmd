@@ -180,7 +180,6 @@ METADATA <- METADATA  %>% dplyr::filter(!(SampleID %in% ind))
 # Match covariates to expression data
 indToRetain = intersect(METADATA$SampleID, colnames(counts))
 
-rownames(counts) <- counts$Geneid
 counts = counts[,indToRetain]
 
 rownames(METADATA) = METADATA$SampleID
@@ -329,7 +328,7 @@ multiplot(plotlist = p, cols = 3)
 # vcd::mosaic(~ Gender + Dx.Tissue, data = COVARIATES)
 ```
 ### Filter genes
-Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Also remove genes with missing gene length and percentage GC content
+Remove genes that have less than 1 cpm counts in at least 50% of samples per Dx.Tissue. Remove genes with percentage GC content
 ```{r cpmnormalisation}
 counts$gene_id = NULL
 
@@ -342,8 +341,7 @@ genesToAnalyze = dlply(METADATA, .(Dx.Tissue, Reported_Gender), .fun = function(
 
 genesToAnalyze = unlist(genesToAnalyze) %>% 
   unique() %>%
-  intersect(GENE.GC.CONT$gene_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)]) %>%
-  intersect(gene_lengths$gene_id[!is.na(gene_lengths$Length)])
+  intersect(GENE.GC.CONT$gene_id[!is.na(GENE.GC.CONT$percentage_gene_gc_content)])
 
 #Subset union of all genes and convert subset to logcpm values 
 PROCESSED_COUNTS = getGeneFilteredGeneExprMatrix(counts[genesToAnalyze, ], MIN_GENE_CPM=0, MIN_SAMPLE_PERCENT_WITH_MIN_GENE_CPM=0)
@@ -479,20 +477,6 @@ WGCNA::plotDendroAndColors(tree,
 ```{r temp, include = F}
 dev.off()
 gc()
-```
-
-### Distribution of samples (log cpm)
-```{r lcpm.dist, cache=FALSE}
-# Plot abberent distribution of logcpm counts
-tmp1 = (CQN.GENE_EXPRESSION$E) %>%
-  rownameToFirstColumn('gene_id') %>%
-  tidyr::gather(SampleID, logCPM, -gene_id) %>%
-  left_join(COVARIATES %>%
-              rownameToFirstColumn('SampleID'))
-
-p = ggplot(tmp1, aes(x = logCPM, color = SampleID)) + geom_density() 
-p = p + theme_bw() %+replace% theme(legend.position = 'NONE') + facet_grid(.~Dx.Tissue, scale = 'free')
-p
 ```
 
 ### Significant Covariates
