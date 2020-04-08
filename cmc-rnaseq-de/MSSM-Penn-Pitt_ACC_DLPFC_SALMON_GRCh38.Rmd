@@ -532,7 +532,7 @@ fitMixedEffectModel <- function(varsToFit, groupingVar, cnt, covars){
                                 }, error = function(e){
                                   BIC = NA
                                 })
-                              return(data.frame(ensembl_transcript_id = rownames(cnt)[i],
+                              return(data.frame(ensembl_gene_id = rownames(cnt)[i],
                                                 BIC = BIC))
                             }
   return(modelBIC)
@@ -562,7 +562,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, cnt, base
     
     # Find number of genes that are changed based on BIC
     nChange = allModelBIC %>%
-      tidyr::gather(ModelName, Value, -ensembl_transcript_id) %>%
+      tidyr::gather(ModelName, Value, -ensembl_gene_id) %>%
       dplyr::left_join(baseModelBIC) %>%
       dplyr::mutate(diff = baseModel - Value) %>%
       dplyr::group_by(ModelName) %>%
@@ -581,7 +581,7 @@ selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, cnt, base
       covarsToSelect = c()
     } else {
       baseModelBIC = allModelBIC %>%
-        dplyr::select(ensembl_transcript_id, one_of(tmp$ModelName))
+        dplyr::select(ensembl_gene_id, one_of(tmp$ModelName))
       colnames(baseModelBIC)[2] = 'baseModel'
       varsSelected = c(varsSelected, tmp$ModelName)
       covarsToSelect = setdiff(covarsToSelect, tmp$ModelName)
@@ -684,7 +684,7 @@ synSetAnnotations(COV_OBJ, annotations = all.annotations)
 
 # Store filtered counts
 PROCESSED_COUNTS$filteredExprMatrix$counts %>%
-  rownameToFirstColumn('ensembl_transcript_id') %>%
+  rownameToFirstColumn('ensembl_gene_id') %>%
   write.table(file = 'CMC_ACC_DLPFC_Counts.tsv', sep = '\t', row.names=F, quote=F)
 COUNT_OBJ = File('CMC_ACC_DLPFC_Counts.tsv', name = 'Counts (filtered raw)', parentId = CODE$properties$id)
 COUNT_OBJ = synStore(COUNT_OBJ, used = ALL_USED_IDs, activityName = activityName, 
