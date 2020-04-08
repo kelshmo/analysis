@@ -73,7 +73,7 @@ activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN norm
 thisFileName <- 'HBCC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='add-dream')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='master')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
@@ -89,7 +89,7 @@ downloadFile_version <- function(id , version){
 # Get RNASeq QCmetadata
 METADATA_QC_DLPFC_ID = 'syn16816488' 
 ALL_USED_IDs = METADATA_QC_DLPFC_ID
-metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 18) %>%
+metadata = downloadFile_version(METADATA_QC_DLPFC_ID, version = 19) %>%
   dplyr::select(`Individual_ID`, Institution, Cohort, `Reported_Gender`, Sex, Ethnicity, ageOfDeath, `PMI_(in_hours)`, Dx, 
                 Sample_RNA_ID, one_of('rnaSeq_isolation:RIN',
                                       'rnaSeq_dissection:Brain_Region',
@@ -304,7 +304,7 @@ COVARIATES.CORRELATION = getAssociationStatistics(COVARIATES, PVAL = 0.05)
 tmp = COVARIATES.CORRELATION$ESTIMATE
 tmp[COVARIATES.CORRELATION$PVAL > 0.05] = 0
 h = Heatmap(tmp, col = colorRamp2(c(-1,0,1), c('blue','white','red')), name = 'AssocEstimate')
-draw(h, heatmap_legend_side = 'left')
+ComplexHeatmap::draw(h, heatmap_legend_side = 'left')
 ```
 
 ## Explore metatdata
