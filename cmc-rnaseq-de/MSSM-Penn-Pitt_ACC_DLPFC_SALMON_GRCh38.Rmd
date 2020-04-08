@@ -203,7 +203,7 @@ backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
 
 # Define biomart object
 mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+                host = "useast.ensembl.org", # Ensembl Release 99 (January 2020)
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
@@ -233,12 +233,12 @@ REPORTED.GENDER.COUNTS = GENE.GC.CONT %>%
   dplyr::rename(`Reported Gender` = Reported_Gender) 
 
 ##XIST and UTY expression 
-#ENSG00000229807.11 and ENSG00000183878.15 
+#ENSG00000229807.12 and ENSG00000183878.15 
 FILT <- REPORTED.GENDER.COUNTS %>% 
-  filter(gene_id == "ENSG00000229807.11" | gene_id == "ENSG00000183878.15") %>% 
+  filter(gene_id == "ENSG00000229807.12" | gene_id == "ENSG00000183878.15") %>% 
   dplyr::select(-one_of("chromosome_name")) %>% 
   tidyr::spread(key = gene_id, value = `counts(log)`) %>% 
-  mutate(XIST = as.numeric(`ENSG00000229807.11`)) %>% 
+  mutate(XIST = as.numeric(`ENSG00000229807.12`)) %>% 
   mutate(UTY = as.numeric(`ENSG00000183878.15`))
 
 p = ggplot(FILT, aes (x= XIST, y = UTY)) 
