@@ -307,7 +307,7 @@ rm(counts)
 
 # Define biomart object
 mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
-                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+                host = "useast.ensembl.org", # Ensembl Release 99 (January 2020)
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
@@ -340,21 +340,21 @@ DE$Direction[DE$adj.P.Val > 0.05 | abs(DE$logFC) < log2(1.2)] = 'NONE'
 
 tmp = DE %>%
   dplyr::filter(adj.P.Val <= 0.05) %>%
-  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
-  group_by(Comparison, Tissue) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
   dplyr::summarise(FDR_0_05 = length(unique(ensembl_gene_id)))
 
 tmp1 = DE %>%
   dplyr::filter(adj.P.Val <= 0.05, abs(logFC) >= log2(1.2)) %>%
-  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
-  group_by(Comparison, Tissue) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
   dplyr::summarise(FDR_0_05_FC_1.2 = length(unique(ensembl_gene_id)))
 
 kable(full_join(tmp,tmp1))
 
 p = ggplot(DE, aes(y = -log10(adj.P.Val), x = logFC, color = Direction)) + geom_point() + xlim(c(-1,1))
 p = p + scale_color_manual(values = c('green','grey','red')) + theme_bw() %+replace% theme(legend.position = 'top')
-p = p + facet_grid(Tissue+.~Comparison, scales = 'fixed')
+p = p + facet_grid(~Comparison, scales = 'fixed')
 p
 ```
 
