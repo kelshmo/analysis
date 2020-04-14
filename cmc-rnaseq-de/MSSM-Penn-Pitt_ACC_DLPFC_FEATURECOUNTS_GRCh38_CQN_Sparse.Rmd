@@ -516,21 +516,21 @@ subset_NEW.COUNTS<- NEW.COUNTS[rand_sample,]
 subset_CQN <- CQN.GENE_EXPRESSION$E[rand_sample,]
 ```
 
-### Significant Covariates
-Correlation between pca of unadjusted mRNA expression and covariates is used to find significant covariates
-```{r preAdjusted.covariates, cache=TRUE}
-# Find correlation between PC's of gene expression with covariates
-preAdjustedSigCovars = runPCAandPlotCorrelations(CQN.GENE_EXPRESSION$E, 
-                                                 COVARIATES,
-                                                 'NULL design(voom-normalized)', 
-                                                 isKeyPlot=TRUE, 
-                                                 MIN_PVE_PCT_PC = 1)
-```
+<!-- ### Significant Covariates -->
+<!-- Correlation between pca of unadjusted mRNA expression and covariates is used to find significant covariates -->
+<!-- ```{r preAdjusted.covariates, cache=TRUE} -->
+<!-- # Find correlation between PC's of gene expression with covariates -->
+<!-- preAdjustedSigCovars = runPCAandPlotCorrelations(CQN.GENE_EXPRESSION$E,  -->
+<!--                                                  COVARIATES, -->
+<!--                                                  'NULL design(voom-normalized)',  -->
+<!--                                                  isKeyPlot=TRUE,  -->
+<!--                                                  MIN_PVE_PCT_PC = 1) -->
+<!-- ``` -->
 
-Significant covariates to adjust at FDR 0.1 are `r preAdjustedSigCovars$significantCovars`
-```{r preAdjustedSigCovars.NULL, fig.width=20, fig.height=12}
-preAdjustedSigCovars[["PC_res"]][[2]]$plotData
-```
+<!-- Significant covariates to adjust at FDR 0.1 are `r preAdjustedSigCovars$significantCovars` -->
+<!-- ```{r preAdjustedSigCovars.NULL, fig.width=20, fig.height=12} -->
+<!-- preAdjustedSigCovars[["PC_res"]][[2]]$plotData -->
+<!-- ``` -->
 
 ### Model Identification
 ```{r fxn}
