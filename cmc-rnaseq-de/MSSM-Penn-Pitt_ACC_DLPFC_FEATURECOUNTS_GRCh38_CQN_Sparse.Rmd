@@ -585,73 +585,73 @@ phase3
 #### Variables included in the model 
 `r phase3$formula`
 
-### Store files in synapse
-```{r synapse.store, include=FALSE, eval=TRUE, cache=FALSE}
-# Set annotations
-all.annotations = list(
-  dataType = 'geneExpression',
-  dataSubtype = 'processed',
-  assay	 = 'rnaSeq',
-  
-  tissue	= 'dorsolateral prefrontal cortex, anterior cingulate cortex', 
-  study = 'CMC', 
+<!-- ### Store files in synapse -->
+<!-- ```{r synapse.store, include=FALSE, eval=TRUE, cache=FALSE} -->
+<!-- # Set annotations -->
+<!-- all.annotations = list( -->
+<!--   dataType = 'geneExpression', -->
+<!--   dataSubtype = 'processed', -->
+<!--   assay	 = 'rnaSeq', -->
 
-  species = 'Human',
-  consortium	= 'CMC',
-   
-  analysisType	= "data normalization",
-  
-  transcriptNormalizationMethod	= 'CQN',
-  transcriptQuantificationMethod = 'featureCounts',
-  referenceSet = 'GRCh38'
-)
+<!--   tissue	= 'dorsolateral prefrontal cortex, anterior cingulate cortex',  -->
+<!--   study = 'CMC',  -->
 
-# Code
-CODE <- Folder(name = "test mvBIC - MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN", parentId = parentId)
-CODE <- synStore(CODE)
+<!--   species = 'Human', -->
+<!--   consortium	= 'CMC', -->
 
-# Store covariates
-COVARIATES = rownameToFirstColumn(COVARIATES, 'SampleID')
-write.table(COVARIATES, file = 'CMC_ACC_DLPFC_Covariates.tsv', sep = '\t', row.names=F, quote=F)
-COV_OBJ = synapser::File('CMC_ACC_DLPFC_Covariates.tsv', name = 'Covariates', parentId = CODE$properties$id)
-COV_OBJ = synStore(COV_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                      executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(COV_OBJ, annotations = all.annotations)
+<!--   analysisType	= "data normalization", -->
 
-# Store filtered counts
-PROCESSED_COUNTS$filteredExprMatrix$counts %>%
-  rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_DLPFC_Counts.tsv', sep = '\t', row.names=F, quote=F)
-COUNT_OBJ = File('CMC_ACC_DLPFC_Counts.tsv', name = 'Counts (filtered raw)', parentId = CODE$properties$id)
-COUNT_OBJ = synStore(COUNT_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                      executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(COUNT_OBJ, annotations = all.annotations)
+<!--   transcriptNormalizationMethod	= 'CQN', -->
+<!--   transcriptQuantificationMethod = 'featureCounts', -->
+<!--   referenceSet = 'GRCh38' -->
+<!-- ) -->
 
-# Store logCPM
-CQN.GENE_EXPRESSION$E %>%
-  rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_DLPFC_logCPM.tsv', sep = '\t', row.names=F, quote=F)
-LCOUNT_OBJ = File('CMC_ACC_DLPFC_logCPM.tsv', name = 'Counts (filtered logCPM)', parentId = CODE$properties$id)
-LCOUNT_OBJ = synStore(LCOUNT_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                      executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(LCOUNT_OBJ, annotations = all.annotations)
+<!-- # Code -->
+<!-- CODE <- Folder(name = "test mvBIC - MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN", parentId = parentId) -->
+<!-- CODE <- synStore(CODE) -->
 
-# Store cqn offsets
-CQN.GENE_EXPRESSION$offset %>%
-  rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_DLPFC_offset.tsv', sep = '\t', row.names=F, quote=F)
-OFFSET_OBJ = File('CMC_ACC_DLPFC_offset.tsv', name = 'Gene length and GC content offset', parentId = CODE$properties$id)
-OFFSET_OBJ = synStore(OFFSET_OBJ, used = ALL_USED_IDs, activityName = activityName, 
-                      executed = thisFile, activityDescription = activityDescription)
-synSetAnnotations(OFFSET_OBJ, annotations = all.annotations)
-```
+<!-- # Store covariates -->
+<!-- COVARIATES = rownameToFirstColumn(COVARIATES, 'SampleID') -->
+<!-- write.table(COVARIATES, file = 'CMC_ACC_DLPFC_Covariates.tsv', sep = '\t', row.names=F, quote=F) -->
+<!-- COV_OBJ = synapser::File('CMC_ACC_DLPFC_Covariates.tsv', name = 'Covariates', parentId = CODE$properties$id) -->
+<!-- COV_OBJ = synStore(COV_OBJ, used = ALL_USED_IDs, activityName = activityName,  -->
+<!--                       executed = thisFile, activityDescription = activityDescription) -->
+<!-- synSetAnnotations(COV_OBJ, annotations = all.annotations) -->
 
-|  *Results*                                  |  *SynapseID*                     |
-|  -----------------------------------------  |   ---------                      |
-|  Covariates                                 |  `r COV_OBJ$properties$id`       |
-|  Counts (raw)                               |  `r COUNT_OBJ$properties$id`     |
-|  Counts (lcpm)                              |  `r LCOUNT_OBJ$properties$id`    |
-|  Offset (for gene length and gc content)    |  `r OFFSET_OBJ$properties$id`    |
+<!-- # Store filtered counts -->
+<!-- PROCESSED_COUNTS$filteredExprMatrix$counts %>% -->
+<!--   rownameToFirstColumn('ensembl_gene_id') %>% -->
+<!--   write.table(file = 'CMC_ACC_DLPFC_Counts.tsv', sep = '\t', row.names=F, quote=F) -->
+<!-- COUNT_OBJ = File('CMC_ACC_DLPFC_Counts.tsv', name = 'Counts (filtered raw)', parentId = CODE$properties$id) -->
+<!-- COUNT_OBJ = synStore(COUNT_OBJ, used = ALL_USED_IDs, activityName = activityName,  -->
+<!--                       executed = thisFile, activityDescription = activityDescription) -->
+<!-- synSetAnnotations(COUNT_OBJ, annotations = all.annotations) -->
+
+<!-- # Store logCPM -->
+<!-- CQN.GENE_EXPRESSION$E %>% -->
+<!--   rownameToFirstColumn('ensembl_gene_id') %>% -->
+<!--   write.table(file = 'CMC_ACC_DLPFC_logCPM.tsv', sep = '\t', row.names=F, quote=F) -->
+<!-- LCOUNT_OBJ = File('CMC_ACC_DLPFC_logCPM.tsv', name = 'Counts (filtered logCPM)', parentId = CODE$properties$id) -->
+<!-- LCOUNT_OBJ = synStore(LCOUNT_OBJ, used = ALL_USED_IDs, activityName = activityName,  -->
+<!--                       executed = thisFile, activityDescription = activityDescription) -->
+<!-- synSetAnnotations(LCOUNT_OBJ, annotations = all.annotations) -->
+
+<!-- # Store cqn offsets -->
+<!-- CQN.GENE_EXPRESSION$offset %>% -->
+<!--   rownameToFirstColumn('ensembl_gene_id') %>% -->
+<!--   write.table(file = 'CMC_ACC_DLPFC_offset.tsv', sep = '\t', row.names=F, quote=F) -->
+<!-- OFFSET_OBJ = File('CMC_ACC_DLPFC_offset.tsv', name = 'Gene length and GC content offset', parentId = CODE$properties$id) -->
+<!-- OFFSET_OBJ = synStore(OFFSET_OBJ, used = ALL_USED_IDs, activityName = activityName,  -->
+<!--                       executed = thisFile, activityDescription = activityDescription) -->
+<!-- synSetAnnotations(OFFSET_OBJ, annotations = all.annotations) -->
+<!-- ``` -->
+
+<!-- |  *Results*                                  |  *SynapseID*                     | -->
+<!-- |  -----------------------------------------  |   ---------                      | -->
+<!-- |  Covariates                                 |  `r COV_OBJ$properties$id`       | -->
+<!-- |  Counts (raw)                               |  `r COUNT_OBJ$properties$id`     | -->
+<!-- |  Counts (lcpm)                              |  `r LCOUNT_OBJ$properties$id`    | -->
+<!-- |  Offset (for gene length and gc content)    |  `r OFFSET_OBJ$properties$id`    | -->
 
 ### Source Rmd
 [Source markdown](`r thisFile`)
