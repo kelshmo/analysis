@@ -205,25 +205,26 @@ METADATA = METADATA %>%
 
 ```{r gene.param}
 ## Get GC content from biomart
-backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
-  dplyr::mutate(id = gene_id) %>%
-  tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
-
-# Define biomart object
-mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
-                dataset = "hsapiens_gene_ensembl")
-
-# Query biomart
-Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
-                       filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
-                       mart = mart)
-
-GENE.GC.CONT = Ensemble2HGNC %>%
-  dplyr::left_join(backgroundGenes) %>% 
-  dplyr::select(gene_id, percentage_gene_gc_content, chromosome_name) %>%
-  unique
-rownames(GENE.GC.CONT) = GENE.GC.CONT$gene_id
+# backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
+#   dplyr::mutate(id = gene_id) %>%
+#   tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
+# 
+# # Define biomart object
+# mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#                 host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+#                 dataset = "hsapiens_gene_ensembl")
+# 
+# # Query biomart
+# Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
+#                        filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
+#                        mart = mart)
+# 
+# GENE.GC.CONT = Ensemble2HGNC %>%
+#   dplyr::left_join(backgroundGenes) %>% 
+#   dplyr::select(gene_id, percentage_gene_gc_content, chromosome_name) %>%
+#   unique
+# rownames(GENE.GC.CONT) = GENE.GC.CONT$gene_id]
+GENE.GC.CONT = downloadFile("syn21907981")
 ```
 
 ### Sex Check
