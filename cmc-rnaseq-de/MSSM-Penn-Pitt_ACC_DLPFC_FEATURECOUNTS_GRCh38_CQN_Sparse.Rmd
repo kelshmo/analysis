@@ -278,14 +278,14 @@ COVARIATES[,ContCovariates] = lapply(COVARIATES[,ContCovariates], function(x){
 COVARIATES$RIN2 = COVARIATES$RIN^2
 ContCovariates = c(ContCovariates, 'RIN2')
 ```
-Correlation/association between covariates at an FDR <= 0.1
-```{r covariates.correlation, fig.width=10, fig.height=8}
-COVARIATES.CORRELATION = getAssociationStatistics(COVARIATES, PVAL = 0.05)
-tmp = COVARIATES.CORRELATION$ESTIMATE
-tmp[COVARIATES.CORRELATION$PVAL > 0.05] = 0
-h = Heatmap(tmp, col = colorRamp2(c(-1,0,1), c('blue','white','red')), name = 'AssocEstimate')
-ComplexHeatmap::draw(h, heatmap_legend_side = 'left')
-```
+<!-- Correlation/association between covariates at an FDR <= 0.1 -->
+<!-- ```{r covariates.correlation, fig.width=10, fig.height=8} -->
+<!-- COVARIATES.CORRELATION = getAssociationStatistics(COVARIATES, PVAL = 0.05) -->
+<!-- tmp = COVARIATES.CORRELATION$ESTIMATE -->
+<!-- tmp[COVARIATES.CORRELATION$PVAL > 0.05] = 0 -->
+<!-- h = Heatmap(tmp, col = colorRamp2(c(-1,0,1), c('blue','white','red')), name = 'AssocEstimate') -->
+<!-- ComplexHeatmap::draw(h, heatmap_legend_side = 'left') -->
+<!-- ``` -->
 
 <!-- ## Explore metatdata -->
 <!-- ```{r data.explore, fig.width = 12, fig.height = 12} -->
