@@ -37,8 +37,8 @@ library(synapser)
 library(knitr)
 library(githubr) # get the package from devtools::install_github('brian-bot/githubr')
 
-devtools::install_github("GabrielHoffman/mvBIC")
-library(mvBIC)
+
+library(mvBIC) # devtools::install_github("GabrielHoffman/mvBIC")
 
 synLogin()
 
@@ -69,7 +69,7 @@ activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN norm
 thisFileName <- 'MSSM-Penn-Pitt_ACC_DLPFC_FEATURECOUNTS_GRCh38_CQN_Sparse.Rmd'
 
 # Github link
-thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='master')
+thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='test-mvBIC')
 thisFile <- getPermlink(repository = thisRepo, repositoryPath=paste0('cmc-rnaseq-de/',thisFileName))
 ```
 ### Data download
@@ -606,10 +606,11 @@ phase3
 <!--   referenceSet = 'GRCh38' -->
 <!-- ) -->
 
-<!-- # Code -->
-<!-- CODE <- Folder(name = "test mvBIC - MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN", parentId = parentId) -->
-<!-- CODE <- synStore(CODE) -->
-
+# Code
+``` {r save_code}
+CODE <- Folder(name = "test mvBIC - MSSM-Penn-Pitt - ACC and DLPFC - DREAM - FEATURECOUNTS - GRCh38 - CQN", parentId = parentId)
+CODE <- synStore(CODE)
+```
 <!-- # Store covariates -->
 <!-- COVARIATES = rownameToFirstColumn(COVARIATES, 'SampleID') -->
 <!-- write.table(COVARIATES, file = 'CMC_ACC_DLPFC_Covariates.tsv', sep = '\t', row.names=F, quote=F) -->
