@@ -46,7 +46,7 @@ library(BiocParallel)
 library(foreach)
 library(future)
 
-param = SnowParam(4, "SOCK", progressbar=TRUE)
+param = SnowParam((availableCores()-2), "SOCK", progressbar=TRUE)
 register(param)
 
 options(xtable.type="html")
