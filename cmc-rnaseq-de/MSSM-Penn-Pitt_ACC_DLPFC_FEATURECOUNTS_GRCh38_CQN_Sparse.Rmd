@@ -533,7 +533,7 @@ base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) 
 phase1 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
                          baseFormula = base_formula, 
                          data = COVARIATES,
-                         variables = array(c("(1|Institution)", "Reported_Gender", "PMI", 
+                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "PMI", 
                                                              "ageOfDeath", "RIN", "RIN2", "EV.1", 
                                                              "EV.2", "EV.3", "EV.4", "EV.5")))
 phase1
@@ -553,7 +553,7 @@ phase2
 phase3 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
                          baseFormula = phase2$formula, 
                          data = COVARIATES,
-                         variables = array(c("MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate", "GenesDetected", "rRNARate", "TotalReads")))
+                         variables = array(c("IntragenicRate", "IntronicRate","IntergenicRate","rRNARate", "TotalReads", "GenesDetected", "MappedReads")))
 phase3
 ```
 
