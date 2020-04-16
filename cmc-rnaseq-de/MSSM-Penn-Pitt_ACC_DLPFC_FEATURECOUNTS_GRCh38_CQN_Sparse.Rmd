@@ -42,13 +42,12 @@ library(mvBIC) # devtools::install_github("GabrielHoffman/mvBIC")
 
 synLogin()
 
-library(doParallel)
+library(BiocParallel)
 library(foreach)
 library(future)
 
-cl = makeCluster((availableCores()-2)/2)
-
-registerDoParallel(cl)
+param = SnowParam(4, "SOCK", progressbar=TRUE)
+register(param)
 
 options(xtable.type="html")
 
