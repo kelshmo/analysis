@@ -208,15 +208,17 @@ backgroundGenes = data.frame(gene_id = rownames(counts)) %>%
   dplyr::mutate(id = gene_id) %>%
   tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
 
+# Biomart down until April 20th maintenance
 # Define biomart object
-mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
-                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
-                dataset = "hsapiens_gene_ensembl")
-
-# Query biomart
-Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
-                       filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
-                       mart = mart)
+# mart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", 
+#                 host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+#                 dataset = "hsapiens_gene_ensembl")
+# 
+# # Query biomart
+# Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "percentage_gene_gc_content", "gene_biotype", "chromosome_name"),
+#                        filters = "ensembl_gene_id", values = backgroundGenes$ensembl_gene_id,
+#                        mart = mart)
+Ensemble2HGNC = downloadFile("syn21907981")
 
 GENE.GC.CONT = Ensemble2HGNC %>%
   dplyr::left_join(backgroundGenes) %>% 
