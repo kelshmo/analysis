@@ -518,39 +518,40 @@ subset_NEW.COUNTS<- NEW.COUNTS[rand_sample,]
 subset_CQN <- CQN.GENE_EXPRESSION$E[rand_sample,]
 ```
 
-#### Phase I (clinical, ancestry and sample specific technical variables)
-```{r phase1}
-# Fit a base model with the following covariates
-base_covars <- "Dx.Tissue"
-random_effect <- "Individual_ID"
+<!-- #### Phase I (clinical, ancestry and sample specific technical variables) -->
+<!-- ```{r phase1} -->
+<!-- # Fit a base model with the following covariates -->
+<!-- base_covars <- "Dx.Tissue" -->
+<!-- random_effect <- "Individual_ID" -->
 
-# Set base formula
-base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) %>% 
-  glue::glue(" + (1|{random_effect})")
+<!-- # Set base formula -->
+<!-- base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) %>%  -->
+<!--   glue::glue(" + (1|{random_effect})") -->
 
-# Stepwise regression
-phase1 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
-                         baseFormula = base_formula, 
-                         data = COVARIATES,
-                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "PMI", 
-                                                             "ageOfDeath", "RIN", "RIN2", "EV.1", 
-                                                             "EV.2", "EV.3", "EV.4", "EV.5")))
-phase1
-```
+<!-- # Stepwise regression -->
+<!-- phase1 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN, -->
+<!--                          baseFormula = base_formula,  -->
+<!--                          data = COVARIATES, -->
+<!--                          variables = array(c("(1|Institution)", "(1|Reported_Gender)", "PMI",  -->
+<!--                                                              "ageOfDeath", "RIN", "RIN2", "EV.1",  -->
+<!--                                                              "EV.2", "EV.3", "EV.4", "EV.5"))) -->
+<!-- phase1 -->
+<!-- ``` -->
 
-#### Phase II (batch effects)
-```{r phase2}
-phase2 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
-                         baseFormula = phase1$formula, 
-                         data = COVARIATES,
-                         variables = array(c("(1|LibraryBatch)", "(1|FlowcellBatch)")))
-phase2
-```
+<!-- #### Phase II (batch effects) -->
+<!-- ```{r phase2} -->
+<!-- phase2 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN, -->
+<!--                          baseFormula = phase1$formula,  -->
+<!--                          data = COVARIATES, -->
+<!--                          variables = array(c("(1|LibraryBatch)", "(1|FlowcellBatch)"))) -->
+<!-- phase2 -->
+<!-- ``` -->
 
 #### Phase III (RNASeq alignment specific covariates)
 ```{r phase3}
+phase2_formula <- "~Dx.Tissue + (1 | Individual_ID) + RIN2 + (1 | Institution) + ageOfDeath + RIN + PMI + EV.1 + (1 | Reported_Gender) + EV.2 + EV.3 + EV.4"
 phase3 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
-                         baseFormula = phase2$formula, 
+                         baseFormula = phase2_formula, 
                          data = COVARIATES,
                          variables = array(c("IntragenicRate", "IntronicRate","IntergenicRate","rRNARate", "TotalReads", "GenesDetected", "MappedReads")))
 phase3
