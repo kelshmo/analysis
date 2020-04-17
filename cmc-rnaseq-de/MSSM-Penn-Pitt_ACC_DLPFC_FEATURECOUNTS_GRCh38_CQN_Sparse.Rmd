@@ -552,7 +552,7 @@ phase2
 phase3 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
                          baseFormula = phase2$formula, 
                          data = COVARIATES,
-                         variables = array(c("IntragenicRate", "IntronicRate","IntergenicRate","rRNARate", "TotalReads", "GenesDetected", "MappedReads")))
+                         variables = array(c("IntragenicRate", "IntronicRate","IntergenicRate","rRNARate", "(1|TotalReads)", "GenesDetected", "MappedReads")))
 phase3
 ```
 
