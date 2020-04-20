@@ -542,9 +542,9 @@ base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) 
 phase1 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
                          baseFormula = base_formula, 
                          data = COVARIATES,
-                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "PMI", 
-                                                             "ageOfDeath", "RIN", "RIN2", "EV.1", 
-                                                             "EV.2", "EV.3", "EV.4", "EV.5")))
+                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "scale(PMI)", 
+                                                             "scale(ageOfDeath)", "scale(RIN)", "scale(RIN2)", "scale(EV.1)", 
+                                                             "scale(EV.2)", "scale(EV.3)", "scale(EV.4)", "scale(EV.5)")))
 phase1
 ```
 Clinical and technical variables selected in phase I are `r paste(adjust.covars, collapse = ', ')`
