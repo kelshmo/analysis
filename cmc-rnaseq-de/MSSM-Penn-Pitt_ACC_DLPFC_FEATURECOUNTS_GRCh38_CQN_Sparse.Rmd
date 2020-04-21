@@ -535,15 +535,15 @@ base_covars <- "Dx.Tissue"
 random_effect <- "Individual_ID"
 
 # Set base formula
-base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) %>% 
+base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) %>%
   glue::glue(" + (1|{random_effect})")
 
 # Stepwise regression
 phase1 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
-                         baseFormula = base_formula, 
+                         baseFormula = base_formula,
                          data = COVARIATES,
-                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "scale(PMI)", 
-                                                             "scale(ageOfDeath)", "scale(RIN)", "scale(RIN2)", "scale(EV.1)", 
+                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "scale(PMI)",
+                                                             "scale(ageOfDeath)", "scale(RIN)", "scale(RIN2)", "scale(EV.1)",
                                                              "scale(EV.2)", "scale(EV.3)", "scale(EV.4)", "scale(EV.5)")))
 phase1
 ```
@@ -551,7 +551,7 @@ phase1
 #### Phase II (batch effects)
 ```{r phase2}
 # Fit a base model with the following covariates
-phase2 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
+phase2 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
                          baseFormula = phase1$formula, 
                          data = COVARIATES,
                          variables = array(c("(1|LibraryBatch)", "(1|FlowcellBatch)")))
@@ -561,7 +561,7 @@ phase2
 #### Phase III (RNASeq alignment specific covariates)
 ```{r phase3}
 # Fit a base model with the following covariates
-phase3 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
+phase3 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
                          baseFormula = phase2$formula, 
                          data = COVARIATES,
                          variables = array(c("scale(IntragenicRate)", "scale(IntronicRate)","scale(IntergenicRate)","scale(rRNARate)", 
