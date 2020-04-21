@@ -57,7 +57,7 @@ knitr::opts_chunk$set(
   cache = TRUE)
 ```
 
-```{r synapse.parameters, include=FALSE, cache=TRUE}
+```{r synapse.parameters, include=FALSE, cache=FALSE}
 parentId = 'syn21435176';
 activityName = 'Covariate adjustments';
 activityDescription = 'Covariate analysis of GRCh38 feature counts with CQN normalisation (ACC and DLPFC)';
@@ -547,7 +547,6 @@ phase1 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
                                                              "scale(EV.2)", "scale(EV.3)", "scale(EV.4)", "scale(EV.5)")))
 phase1
 ```
-Clinical and technical variables selected in phase I are `r paste(adjust.covars, collapse = ', ')`
 
 #### Phase II (batch effects)
 ```{r phase2}
@@ -558,7 +557,6 @@ phase2 <- mvBIC::mvForwardStepwise(exprObj = subset_CQN,
                          variables = array(c("(1|LibraryBatch)", "(1|FlowcellBatch)")))
 phase2
 ```
-Clinical, technical and batch variables selected after phase I and II of model identification are `r paste(adjust.covars, collapse = ', ')`
 
 #### Phase III (RNASeq alignment specific covariates)
 ```{r phase3}
