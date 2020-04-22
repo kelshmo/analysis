@@ -548,166 +548,52 @@ preAdjustedSigCovars[["PC_res"]][[2]]$plotData
 ```
 
 ### Model Identification
-```{r fxn}
-# Function to fit a mixed effect model and return BIC
-fitMixedEffectModel <- function(varsToFit, groupingVar, lcpm, cnt, covars){
-  
-  # Get design matrix
-  designMat = getDesignMatrix(covars[colnames(lcpm), varsToFit, drop=F], Intercept = F)
-  designMat = designMat$design[,linColumnFinder(designMat$design)$indepCols]
-  
-  # Estimate voom weights
-  cnt[is.na(cnt)] = 0
-  voomWeights = limma::voom(cnt, design = designMat, plot=F)$weights
-  
-  modelBIC = foreach::foreach(i = 1:dim(lcpm)[1],
-                              .combine = rbind,
-                              .packages = c('lme4', 'dplyr'),
-                              .export = c('voomWeights')) %dopar% {
-                                
-                                # Perform weighted mixed linear models for every gene
-                                expr = data.frame(Gx = lcpm[i,])
-                                data = cbind(expr,
-                                             designMat[rownames(expr),],
-                                             Individual_ID = groupingVar)
-                                formula = paste(setdiff(colnames(data), c('Gx', 'Individual_ID')), collapse = '+') %>%
-                                  paste('Gx ~',.,'+ (1|Individual_ID)', collapse = ' ')
-          
-                                weights = voomWeights[i,]
-                                BIC = NA
-                                tryCatch({
-                                  mdl = lmer(formula = formula, 
-                                             data = data, 
-                                             weights = weights)
-                                  BIC = BIC(mdl)
-                                }, error = function(e){
-                                  BIC = NA
-                                })
-                              return(data.frame(ensembl_gene_id = rownames(lcpm)[i],
-                                                BIC = BIC))
-                            }
-  return(modelBIC)
-  }
 
-# Function to select covariates in a step-wise regression fashion
-selectCovarsToAdjust <- function(covarsToSelect, adjustCovars, covars, lcpm, cnt, baseModelBIC){
-  
-  varsSelected = c()
-  pkgs = c('CovariateAnalysis', 'data.table', 'dplyr', 'plyr',
-           'edgeR', 'limma', 'lme4', 'foreach', 'doParallel')
-  while(length(covarsToSelect) != 0){
-    allModelBIC = foreach(i = 1:length(covarsToSelect),
-                          .combine = c,
-                          .packages = pkgs,
-                          .export = c('fitMixedEffectModel')) %dopar% {
-                            
-                            # Fit a mixed effect linear model and get all BIC
-                            modelBIC = fitMixedEffectModel(c(adjustCovars, covarsToSelect[i]),
-                                                           covars[colnames(cnt),'Individual_ID'], 
-                                                           lcpm, 
-                                                           cnt, 
-                                                           covars) %>%
-                            plyr::rename(c('BIC' = covarsToSelect[i]))
-                              
-                            return(list(modelBIC))
-                          }
-    allModelBIC = plyr::join_all(allModelBIC) 
-    
-    # Find number of genes that are changed based on BIC
-    nChange = allModelBIC %>%
-      tidyr::gather(ModelName, Value, -ensembl_gene_id) %>%
-      dplyr::left_join(baseModelBIC) %>%
-      dplyr::mutate(diff = baseModel - Value) %>%
-      dplyr::group_by(ModelName) %>%
-      dplyr::summarise(better = sum(diff >= 5), 
-                       worse = sum(diff <= -5)) %>%
-      dplyr::mutate(nchange = better - worse)
-    
-    print(nChange)
-    
-    # Select variable
-    tmp = nChange %>%
-      dplyr::filter(nchange > round(dim(cnt)[1]*0.01)) %>%
-      dplyr::top_n(1, nchange)
-    
-    if (dim(tmp)[1] == 0){
-      covarsToSelect = c()
-    } else {
-      baseModelBIC = allModelBIC %>%
-        dplyr::select(ensembl_gene_id, one_of(tmp$ModelName))
-      colnames(baseModelBIC)[2] = 'baseModel'
-      varsSelected = c(varsSelected, tmp$ModelName)
-      covarsToSelect = setdiff(covarsToSelect, tmp$ModelName)
-      print(paste('Variable chosen to be added:',tmp$ModelName))
-    }
-  }
-  
-  return(varsSelected)
-}
-```
 #### Phase I (clinical, ancestry and sample specific technical variables)
 ```{r phase1}
-# Fit a base model with the following covariates
-adjust.covars = c('Dx')
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
-                                   CQN.GENE_EXPRESSION$E, 
-                                   NEW.COUNTS, 
-                                   COVARIATES) %>%
-  dplyr::rename(baseModel = BIC)
-# Iteratively identify covariates in phase I
-phase1.covars = c('Reported_Gender', 'PMI', 'ageOfDeath', 'RIN', 'RIN2', 'EV.1', 'EV.2', 'EV.3', 'EV.4', 'EV.5')
-vars.selected = selectCovarsToAdjust(phase1.covars, adjust.covars, 
-                                     COVARIATES, CQN.GENE_EXPRESSION$E, 
-                                     NEW.COUNTS, baseModelBIC)
+#Fit a base model with the following covariates
+base_covars <- "Dx"
+random_effect <- "Individual_ID"
 
-adjust.covars = c(adjust.covars, vars.selected)
+# Set base formula
+base_formula <- glue::glue("~ ", glue::glue_collapse(base_covars, sep = " + ")) %>%
+  glue::glue(" + (1|{random_effect})")
+
+# Stepwise regression
+phase1 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
+                         baseFormula = base_formula,
+                         data = COVARIATES,
+                         variables = array(c("(1|Institution)", "(1|Reported_Gender)", "scale(PMI)",
+                                                             "scale(ageOfDeath)", "scale(RIN)", "scale(RIN2)", "scale(EV.1)",
+                                                             "scale(EV.2)", "scale(EV.3)", "scale(EV.4)", "scale(EV.5)")))
+phase1
 ```
-Clinical and technical variables selected in phase I are `r paste(adjust.covars, collapse = ', ')`
 
 #### Phase II (batch effects)
 ```{r phase2}
 # Fit a base model with the following covariates
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
-                                   CQN.GENE_EXPRESSION$E, 
-                                   NEW.COUNTS, 
-                                   COVARIATES) %>%
-  dplyr::rename(baseModel = BIC)
-# Iteratively identify covariates in phase I
-phase2.covars = c('LibraryBatch', 'FlowcellBatch')
-vars.selected = selectCovarsToAdjust(phase2.covars, adjust.covars, 
-                                     COVARIATES, CQN.GENE_EXPRESSION$E, 
-                                     NEW.COUNTS, baseModelBIC)
-
-adjust.covars = c(adjust.covars, vars.selected)
+phase2 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
+                         baseFormula = phase1$formula, 
+                         data = COVARIATES,
+                         variables = array(c("(1|LibraryBatch)", "(1|FlowcellBatch)")))
+phase2
 ```
-Clinical, technical and batch variables selected after phase I and II of model identification are `r paste(adjust.covars, collapse = ', ')`
 
 #### Phase III (RNASeq alignment specific covariates)
 ```{r phase3}
 # Fit a base model with the following covariates
-baseModelBIC = fitMixedEffectModel(adjust.covars, 
-                                   COVARIATES[colnames(NEW.COUNTS),'Individual_ID'], 
-                                   CQN.GENE_EXPRESSION$E, 
-                                   NEW.COUNTS, 
-                                   COVARIATES) %>%
-  dplyr::rename(baseModel = BIC)
-# Iteratively identify covariates in phase I
-phase3.covars = c("MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate", "GenesDetected",
-                  "ExpProfEfficiency", "rRNARate", "TotalReads")
-vars.selected = selectCovarsToAdjust(phase3.covars, adjust.covars, 
-                                     COVARIATES, CQN.GENE_EXPRESSION$E, 
-                                     NEW.COUNTS, baseModelBIC)
-
-adjust.covars = c(adjust.covars, vars.selected)
+phase3 <- mvBIC::mvForwardStepwise(exprObj = CQN.GENE_EXPRESSION$E,
+                         baseFormula = phase2$formula, 
+                         data = COVARIATES,
+                         variables = array(c("scale(IntragenicRate)", "scale(IntronicRate)","scale(IntergenicRate)","scale(rRNARate)", 
+                                             "scale(TotalReads)", "scale(GenesDetected)", "scale(MappedReads)")))
+phase3
 ```
 
 #### Variables included in the model 
-Covariates were added as fixed effects iteratively in three phases if model improvement by BIC criteria was observed in the majority of genes. Clinical, ancestry and sample-specific technical variables were tested for model improvement first. Covariates related to batch effects were next tested for model improvement and finally, RNASeq alignment-specific covariates.
+Covariates were added as fixed and random effects iteratively in three phases if model improvement by BIC criteria was observed. Clinical, ancestry and sample-specific technical variables were tested for model improvement first. Covariates related to batch effects were next tested for model improvement and finally, RNASeq alignment-specific covariates.
 
-Clinical, technical and batch variables selected after phase I, II and III of model identification are `r paste(adjust.covars, collapse = ', ')`
-
+The model for clinical, technical and batch variables selected after phase I, II and III is `r phase3$formula`
 ### Store files in synapse
 ```{r synapse.store, include=FALSE, eval=TRUE, cache=FALSE}
 # Set annotations
