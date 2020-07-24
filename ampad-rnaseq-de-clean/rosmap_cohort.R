@@ -3,25 +3,12 @@
 ############################
 # Get and Join/Bind Inputs #
 ############################
-Sys.setenv(R_CONFIG_ACTIVE = "default")
+Sys.setenv(R_CONFIG_ACTIVE = "rosmap")
 # Join synIDs and select sample identifiers to map sequencing metadata
-sequencing_metadata <- get_data(config::get("sequencing metadata")$synID,
-                                config::get("sequencing metadata")$version) %>%
-  full_join(get_data(config::get("synID mapping")$synID), by = c("sample" = "id")) %>%
-  dplyr::select(specimenID, everything(), -sample, -versionNumber) %>%
-  distinct()
+alignment_metadata <- get_data(config::get("alignment metadata")$synID,
+                                config::get("alignment metadata")$version)
 
-# Remove one version of duplicate counts "syn4212581", "syn4212582"
-counts <- get_data(config::get("counts")$synID)[-c(1:4),] %>%
-  dplyr::select(-syn4212582) %>%
-  tibble::column_to_rownames(var = "feature") %>%
-  t() %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column(var = "sample") %>%
-  left_join(get_data(config::get("synID mapping")$synID), by = c("sample" = "id")) %>%
-  dplyr::select(-sample, -versionNumber) %>%
-  tibble::column_to_rownames(var = "specimenID") %>%
-  t()
+counts <- get_data(config::get("counts")$synID)[-c(1:4),]
 
 # Filter for required mapping columns and metadata variables, keep distinct pairs
 mapping <- get_data(config::get("mapping")$synID, config::get("mapping")$version) %>%
@@ -33,7 +20,7 @@ clinical_metadata <- get_data(config::get("clinical metadata")$synID, config::ge
 # Join metadata files
 metadata <- get_data(config::get("assay metadata")$synID,
                      config::get("assay metadata")$version) %>%
-  dplyr::left_join(sequencing_metadata,
+  dplyr::left_join(alignment_metadata,
                    by = c("Sampleid" = "specimenID")) %>%
   dplyr::select(-projid) %>%
   dplyr::left_join(mapping,

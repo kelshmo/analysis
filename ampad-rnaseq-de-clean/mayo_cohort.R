@@ -1,6 +1,9 @@
 # Get Access to Data: https://adknowledgeportal.synapse.org/#/DataAccess/Instructions
 source("../processFunctions/functions.R")
 
+############################
+# Get and Join/Bind Inputs #
+############################
 # Set config file
 Sys.setenv(R_CONFIG_ACTIVE = "mayo")
 
@@ -118,7 +121,7 @@ PMI <- metadata[,c("pmi", "sampleid", "donorid")]
 # expr = expr[ind,]
 
 # Filter for variables to be used in downstream analysis as covariates
-covariates <- c("sampleid", "donorid", "source", "diagnosis", "tissue_diagnosis", "source_tissue_diagnosis",
+covariates <- c("sampleid", "donorid", "source", "diagnosis", "tissue", "tissue_diagnosis", "source_tissue_diagnosis",
                 "tissue_APOE4", "APOE4", "sex", "rin", "rin2", "age_death", "pmi", "flowcell",
                 "pct_pf_reads_aligned", "pct_coding_bases", "pct_intergenic_bases", "pct_intronic_bases",
                 "pct_ribosomal_bases")

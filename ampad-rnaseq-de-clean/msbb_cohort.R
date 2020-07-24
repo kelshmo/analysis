@@ -9,8 +9,10 @@ synapser::synLogin()
 
 # Get and join metadata
 # RNA-seq metadata
-#
+clinical <- get_data(config::get("clinical metadata")$synID, config::get("clinical metadata")$version)
+protected <- get_data(config::get("protected clinical metadata")$synID, config::get("protected clinical metadata")$version)
 assay_metadata <- get_data(config::get("assay metadata")$synID, config::get("assay metadata")$version)
+alignment_metadata <- get_data(config::get("alignment metadata")$synID, config::get("alignment_metadata")$version)
 
 #Get clarity on why individual identifier differs
 foo <- assay_metadata %>%
@@ -20,7 +22,7 @@ foo <- assay_metadata %>%
   dplyr::select(individualIdentifier, individualIdentifier.inferred)
   #dplyr::select(sampleIdentifier, BrodmannArea, barcode, individualIdentifier, batch, RIN)
 
-sequencing_metadata <- get_data(config::get("sequencing metadata")$synID)
+# sequencing_metadata <- get_data(config::get("sequencing metadata")$synID)
 # Join synIDs and select sample identifiers to map sequencing metadata
 # sequencing_metadata <- get_data(config::get("sequencing metadata")$synID,
 #                                 config::get("sequencing metadata")$version) %>%
