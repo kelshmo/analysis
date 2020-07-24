@@ -5,27 +5,25 @@ default:
     synID:
 rosmap:
   counts:
-    synID: syn21075911
+    synID: syn21544643
   clinical metadata:
     synID: syn3191087
     version: 9
   protected clinical metadata:
     synID: syn7116000
   assay metadata:
-    synID: syn4300313
+    synID: syn4300313 #This file was deprecated?
   alignment metadata:
     synID: syn21075912
   mapping:
     synID: syn3382527
-    version: 7
-  synID mapping:
-    synID: syn21075913
+    version: 9
 mssm:
   counts:
     synID: syn21544664
   clinical metadata:
     synID: syn6101474
-    version: 4
+    version: 6
   protected clinical metadata:
     synID: syn10156693
     version: 4
@@ -34,8 +32,6 @@ mssm:
     version: 10
   alignment metadata:
     synID: syn21544666
-  Synapse folder:
-    synID: syn21562888
 mayo:
   counts:
     synID: syn21544635
