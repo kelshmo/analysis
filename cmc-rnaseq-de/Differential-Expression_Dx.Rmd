@@ -1,5 +1,5 @@
 ---
-title: "Differential Expression"
+title: "Differential Expression - Dx"
 author: "Kelsey Montgomery, Gabriel Hoffman, Thaneer Perumal"
 date: "`r date()`"
 output: html_document
@@ -11,9 +11,9 @@ library(knit2synapse)
 
 synLogin()
 
-knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/Differential-Expression.Rmd",
-                                 parentId ="syn21887806",
-                                 folderName = "Differential Expression - Dx.Tissue")
+knit2synapse::createAndKnitToFolderEntity(file = "./cmc-rnaseq-de/Differential-Expression_Dx.Rmd",
+                                 parentId ="syn21859863",
+                                 folderName = "Differential Expression - Dx")
 ```
 
 ```{r libs, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
@@ -59,11 +59,11 @@ knitr::opts_chunk$set(
 ```
 
 ```{r synapse.parameters, include=FALSE, cache=TRUE}
-parentId = 'syn21887806';
+parentId = 'syn21859863';
 activityName = 'Differential Expression';
-activityDescription = 'Differential Expression - Dx.Tissue';
+activityDescription = 'Differential Expression - Dx';
 
-thisFileName <- 'Differential-Expression.Rmd'
+thisFileName <- 'Differential-Expression_Dx.Rmd'
 
 # Github link
 thisRepo <- getRepo(repository = "kelshmo/analysis", ref="branch", refName='differential-expression')
@@ -78,26 +78,26 @@ downloadFile <- function(id){
 }
 
 # Download CQN counts
-CQN_ID = "syn21888972"
+CQN_ID = "syn21862457"
 ALL_USED_IDs = c(CQN_ID)
 CQN.GENE_EXPRESSION = downloadFile(CQN_ID) %>% 
   tibble::column_to_rownames(var = "ensembl_gene_id") %>% 
   data.matrix()
   
 # Download filtered counts
-COUNTS_ID = "syn21888969"
+COUNTS_ID = "syn21862455"
 ALL_USED_IDs = c(ALL_USED_IDs, COUNTS_ID)
 NEW.COUNTS = downloadFile(COUNTS_ID) %>% 
   tibble::column_to_rownames(var = "ensembl_gene_id")
   
 # Get covariates
-COVAR_ID = "syn21888968"
+COVAR_ID = "syn21862454"
 ALL_USED_IDs = c(ALL_USED_IDs, COVAR_ID)
 COVARIATES = downloadFile(COVAR_ID) %>% 
   tibble::column_to_rownames(var = "SampleID")
 
 # Set variable class
-FactorCovariates <- c("Individual_ID", "Reported_Gender", "Dx.Tissue", "IsolationBatch")
+FactorCovariates <- c("Individual_ID", "Reported_Gender", "LibraryBatch", "Dx", "RibozeroBatch", "FlowcellBatch")
 COVARIATES[,FactorCovariates] = lapply(COVARIATES[,FactorCovariates], factor)
 
 ContCovariates <- c("ageOfDeath", "PMI", "RIN", "MappedReads", "IntragenicRate", "IntronicRate", "IntergenicRate",
@@ -108,11 +108,11 @@ COVARIATES[,ContCovariates] = lapply(COVARIATES[,ContCovariates], function(x){
 })
 
 # Set covariates to adjust for from model selection
-adjust.covars <- c("Dx.Tissue", "RIN", "IntragenicRate")
+adjust.covars <- c("Dx", "RIN", "rRNARate", "IntergenicRate")
 ```
 
-### Normalisation - Dx.Tissue
-1. Dx.Tissue is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis and tissue)
+### Normalisation - Dx
+1. Dx is chosen as the primary variable of interest (i.e., covariate adjustments is conditioned on diagnosis and tissue)
 2. Individual_ID is chosen as random effect
 
 ```{r iterative.normalisation, results='asis'}
@@ -198,51 +198,11 @@ residualSigCovars = runPCAandPlotCorrelations(RESIDUAL.GENE_EXPRESSION, COVARIAT
 residualSigCovars[["PC_res"]][[2]]$plotData
 ```
 
-### Tissue Correlation
-```{r tissue_correlation}
-hasReps = rownameToFirstColumn(COVARIATES, "SampleID") %>%
-  dplyr::select(Individual_ID) %>% 
-  table
-
-df_stg = rownameToFirstColumn(COVARIATES, "SampleID") %>% 
-  filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
-  filter(grepl("STG", Dx.Tissue)) %>% 
-  dplyr::select(SampleID, Individual_ID, Dx.Tissue)
-df_acc = rownameToFirstColumn(COVARIATES, "SampleID") %>%
-  filter( Individual_ID %in% names(hasReps[hasReps==2])) %>%
-  filter(grepl("ACC", Dx.Tissue)) %>% 
-  dplyr::select(SampleID, Individual_ID, Dx.Tissue)
-
-df_merge = merge(df_stg, df_acc, by="Individual_ID")
-
-res_std <- rownameToFirstColumn(RESIDUAL.GENE_EXPRESSION, "ensembl_gene_id")
-
-corRes = sapply(res_std$ensembl_gene_id, function(ensGene){
-
-  x = VOOM.GENE_EXPRESSION$E[ensGene,df_merge$SampleID.x,drop=FALSE]
-  y = VOOM.GENE_EXPRESSION$E[ensGene,df_merge$SampleID.y,drop=FALSE]
-
-  cor(t(x)[,1], t(y)[,1], use="pairwise.complete.obs")
-})
-
-hist(corRes, xlab="Correlation", main="Correlation between ACC and STG sample from the sample individual for each gene")
-
-pca = prcomp(t(VOOM.GENE_EXPRESSION$E))
-
-df_pca = merge(pca$x, as.data.frame(rownameToFirstColumn(COVARIATES, "SampleID")), 
-               by.x="row.names", 
-               by.y="SampleID" ) %>% 
-  tidyr::separate(Dx.Tissue, into = c("Dx", "Tissue"), sep = "_") %>% 
-  dplyr::mutate(Institution = "NIMH-HBCC")
-
-ggplot(df_pca, aes(PC1, PC2, color=Tissue, shape=Institution)) + geom_point() + theme_bw(17) + theme(aspect.ratio=1)
-```
-
 ### Residual calculation
-Calculate weighted residuals and add back "Dx.Tissue" to the residuals
+Calculate weighted residuals and add back "Dx" to the residuals
 ```{r varsToAddBack}
 # Add variable of interest back to the residuals
-varsToAddIn = grep("Dx.Tissue", colnames(ADJUSTED.FIT$design), value = T)
+varsToAddIn = grep("Dx", colnames(ADJUSTED.FIT$design), value = T)
 RESIDUAL.GENE_EXPRESSION = RESIDUAL.GENE_EXPRESSION +
   ADJUSTED.FIT$coefficients[,varsToAddIn] %*% t(ADJUSTED.FIT$design[,varsToAddIn])
 ```
@@ -264,7 +224,7 @@ plotdata <- data.frame(SampleID=rownames(PC$rotation),
                        PC2=PC$rotation[,2])
 
 plotdata <- left_join(plotdata, rownameToFirstColumn(COVARIATES, 'SampleID')) %>%
-  tidyr::separate(Dx.Tissue, c('Dx','Tissue'), sep = '_') %>% 
+  dplyr::mutate(Tissue = "DLPFC") %>%  
   dplyr::mutate(Institution = "NIMH-HBCC")
 
 p <- ggplot(plotdata, aes(x=PC1, y=PC2))
@@ -275,7 +235,7 @@ p
 
 ```{r decompose.normalise.data2.1, fig.height=8, fig.width=12, results='asis'}
 # Eucledian tree based analysis
-COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx.Tissue'), drop = F])
+COVARIATES.tmp = data.matrix(COVARIATES[,c('Dx'), drop = F])
 
 tree = hclust(as.dist(t(RESIDUAL.GENE_EXPRESSION)))
 cols = WGCNA::labels2colors(COVARIATES.tmp);
@@ -306,37 +266,21 @@ formula <- glue::glue("~ 0 + ", glue::glue_collapse(adjust.covars, sep = " + "))
 L1 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueOther_ACC", "Dx.TissueControl_ACC"))
+                                   coefficient = c("DxOther", "DxControl"))
 L2 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueControl_ACC"))
+                                   coefficient = c("DxSCZ", "DxControl"))
 L3 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
                                    formula = formula, 
                                    data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_ACC", "Dx.TissueOther_ACC"))
-L4 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueOther_STG", "Dx.TissueControl_STG"))
-L5 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueControl_STG"))
-L6 = variancePartition::getContrast(exprObj = VOOM.GENE_EXPRESSION, 
-                                   formula = formula, 
-                                   data = COVARIATES, 
-                                   coefficient = c("Dx.TissueSCZ_STG", "Dx.TissueOther_STG"))
+                                   coefficient = c("DxSCZ", "DxOther"))
 
-
-L = cbind(L1, L2, L3, L4, L5, L6)
+L = cbind(L1, L2, L3)
 
 contrast <- c(glue::glue_collapse(names(L1[L1 != 0]), "-"), 
               glue::glue_collapse(names(L2[L2 != 0]), "-"),
-              glue::glue_collapse(names(L3[L3 != 0]), "-"),
-              glue::glue_collapse(names(L4[L4 != 0]), "-"),
-              glue::glue_collapse(names(L5[L5 != 0]), "-"),
-              glue::glue_collapse(names(L6[L6 != 0]), "-")
+              glue::glue_collapse(names(L3[L3 != 0]), "-")
 )
 
 # Visualize contrast matrix
@@ -354,8 +298,8 @@ backgroundGenes = data.frame(gene_id = rownames(NEW.COUNTS)) %>%
   tidyr::separate(id, c('ensembl_gene_id','position'), sep = '\\.')
 
 # Get gene lengths
-counts = 'syn21867866'
-ALL_USED_IDs = counts
+counts = 'syn21754352'
+ALL_USED_IDs = c(ALL_USED_IDs, counts)
 counts = downloadFile(counts) %>% data.frame()
 gene_lengths = counts[,c("Geneid", "Length")] %>% 
   dplyr::rename(gene_id = Geneid)
@@ -363,7 +307,7 @@ rm(counts)
 
 # Define biomart object
 mart <- biomaRt::useMart(biomart = "ENSEMBL_MART_ENSEMBL",
-                host = "uswest.ensembl.org", # Ensembl Release 99 (January 2020)
+                host = "useast.ensembl.org", # Ensembl Release 99 (January 2020)
                 dataset = "hsapiens_gene_ensembl")
 
 # Query biomart
@@ -375,7 +319,7 @@ Ensemble2HGNC <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol",
                        mart = mart)
 
 # Get differential expression
-DE = lapply(glue::glue("L{1:6}"), function(i, FIT){
+DE = lapply(glue::glue("L{1:3}"), function(i, FIT){
   topTable(FIT, coef=i, number = Inf) %>%
     rownameToFirstColumn('gene_id') %>% 
     left_join(backgroundGenes)
@@ -384,35 +328,33 @@ names(DE) <- contrast
 
 DE = DE %>% 
   rbindlist(idcol = 'Comparison') %>%
-  dplyr::mutate(Comparison = gsub('Dx.Tissue','',Comparison),
+  dplyr::mutate(Comparison = gsub('Dx','',Comparison),
                 Direction = logFC/abs(logFC),
                 Direction = factor(Direction, c(-1,1), c('-1' = 'DOWN', '1' = 'UP')),
                 Direction = as.character(Direction)) %>%
   tidyr::separate(Comparison, into = c('ref.state','to.state'), sep = '-') %>%
-  tidyr::separate(ref.state, into = c('Dx1','Tissue'), sep = '_') %>%
-  tidyr::separate(to.state, into = c('Dx2','Tissue'), sep = '_') %>%
-  tidyr::unite(Comparison, Dx1, Dx2, sep = '_vs_') %>%
+  tidyr::unite(Comparison, `ref.state`, `to.state`, sep = '_vs_') %>%
   left_join(Ensemble2HGNC) %>%
   left_join(gene_lengths)
 DE$Direction[DE$adj.P.Val > 0.05 | abs(DE$logFC) < log2(1.2)] = 'NONE'
 
 tmp = DE %>%
   dplyr::filter(adj.P.Val <= 0.05) %>%
-  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
-  group_by(Comparison, Tissue) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
   dplyr::summarise(FDR_0_05 = length(unique(ensembl_gene_id)))
 
 tmp1 = DE %>%
   dplyr::filter(adj.P.Val <= 0.05, abs(logFC) >= log2(1.2)) %>%
-  dplyr::select(ensembl_gene_id, Comparison, Tissue) %>%
-  group_by(Comparison, Tissue) %>%
+  dplyr::select(ensembl_gene_id, Comparison) %>%
+  group_by(Comparison) %>%
   dplyr::summarise(FDR_0_05_FC_1.2 = length(unique(ensembl_gene_id)))
 
 kable(full_join(tmp,tmp1))
 
 p = ggplot(DE, aes(y = -log10(adj.P.Val), x = logFC, color = Direction)) + geom_point() + xlim(c(-1,1))
 p = p + scale_color_manual(values = c('green','grey','red')) + theme_bw() %+replace% theme(legend.position = 'top')
-p = p + facet_grid(Tissue+.~Comparison, scales = 'fixed')
+p = p + facet_grid(~Comparison, scales = 'fixed')
 p
 ```
 
@@ -422,19 +364,19 @@ pl = list()
 pl[[1]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = log10(Length), y = logFC, color = Direction)) + geom_point() 
 pl[[1]] = pl[[1]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = log10(Length), y = logFC))
-pl[[1]] = pl[[1]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[1]] = pl[[1]] + scale_color_manual(values = c('green','grey','red'))
 pl[[1]] = pl[[1]] + theme(legend.position = 'top')
 
 pl[[2]] = ggplot(DE %>% 
                    arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = percentage_gene_gc_content, y = logFC, color = Direction)) + geom_point()
 pl[[2]] = pl[[2]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = percentage_gene_gc_content, y = logFC))
-pl[[2]] = pl[[2]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[2]] = pl[[2]] + scale_color_manual(values = c('green','grey','red'))
 pl[[2]] = pl[[2]] + theme(legend.position = 'top')
 
 pl[[3]] = ggplot(DE %>% 
                     arrange(match(Direction, c("NONE", "UP", "DOWN"))), aes(x = AveExpr, y = logFC, color = Direction)) + geom_point()
 pl[[3]] = pl[[3]] + geom_smooth(method = 'loess', inherit.aes = FALSE, aes(x = AveExpr, y = logFC))
-pl[[3]] = pl[[3]] + facet_grid(Tissue~.) + scale_color_manual(values = c('green','grey','red'))
+pl[[3]] = pl[[3]] + scale_color_manual(values = c('green','grey','red'))
 pl[[3]] = pl[[3]] + theme(legend.position = 'top')
 
 multiplot(plotlist = pl, cols = 3)
@@ -448,7 +390,7 @@ all.annotations = list(
   dataSubtype = 'processed',
   assay	 = 'rnaSeq',
   
-  tissue	= 'superior temporal gyrus, anterior cingulate cortex', 
+  tissue	= 'dorsolateral prefrontal cortex', 
   study = 'CMC', 
 
   species = 'Human',
@@ -462,33 +404,33 @@ all.annotations = list(
 )
 
 # Code
-CODE <- Folder(name = "Differential Expression - Dx.Tissue", parentId = parentId)
+CODE <- Folder(name = "Differential Expression - Dx", parentId = parentId)
 CODE <- synStore(CODE)
 
 # Store residual gene expression for network analysis
 RESIDUAL.GENE_EXPRESSION %>%
   rownameToFirstColumn('ensembl_gene_id') %>%
-  write.table(file = 'CMC_ACC_STG_Dx.Tissue_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
-nEXP_OBJ = File('CMC_ACC_STG_Dx.Tissue_netResidualExpression.tsv', 
-                name = 'Dx.Tissue Normalised, covariates removed residual expression (for network analysis)', 
+  write.table(file = 'CMC_HBCC_DLPFC_Dx_netResidualExpression.tsv', sep = '\t', row.names=F, quote=F)
+nEXP_OBJ = File('CMC_HBCC_DLPFC_Dx_netResidualExpression.tsv', 
+                name = 'Dx Normalised, covariates removed residual expression (for network analysis)', 
                 parentId = CODE$properties$id)
 nEXP_OBJ = synStore(nEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                     executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(nEXP_OBJ, annotations = all.annotations)
 
 # Store differential expression results
-write.table(DE, file = 'CMC_ACC_STG_Dx.Tissue_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
-DEXP_OBJ = File('CMC_ACC_STG_Dx.Tissue_DiffExpression.tsv', 
-                name = 'Differential Expression Results (Dx.Tissue)', 
+write.table(DE, file = 'CMC_HBCC_DLPFC_Dx_DiffExpression.tsv', sep = '\t', row.names=F, quote=F)
+DEXP_OBJ = File('CMC_HBCC_DLPFC_Dx_DiffExpression.tsv', 
+                name = 'Differential Expression Results (Dx)', 
                 parentId = CODE$properties$id)
 DEXP_OBJ = synStore(DEXP_OBJ, used = ALL_USED_IDs, activityName = activityName, 
                     executed = thisFile, activityDescription = activityDescription)
 synSetAnnotations(DEXP_OBJ, annotations = all.annotations)
 
-# Store adjusted fit linear mixed model object as RDS - Dx.Tissue
-saveRDS(ADJUSTED.FIT, file = 'CMC_ACC_STG_Dx.Tissue_dream-output.rds')
-ADJ_OBJ = File('CMC_ACC_STG_Dx.Tissue_dream-output.rds',
-               name = 'Dream Output object - Dx.Tissue', 
+# Store adjusted fit linear mixed model object as RDS - Dx
+saveRDS(ADJUSTED.FIT, file = 'CMC_HBCC_DLPFC_Dx_dream-output.rds')
+ADJ_OBJ = File('CMC_HBCC_DLPFC_Dx_dream-output.rds',
+               name = 'Dream Output object - Dx', 
                parentId = CODE$properties$id)
 ADJ_OBJ = synStore(ADJ_OBJ, used = ALL_USED_IDs, activityName = activityName,
                    executed = thisFile, activityDescription = activityDescription)
